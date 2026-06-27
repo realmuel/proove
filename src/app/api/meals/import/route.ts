@@ -39,6 +39,7 @@ export async function POST(req: Request) {
       description: m.description ?? null,
       emoji: m.emoji || randomEmoji(),
       imagePath,
+      imagePos: m.imagePos ?? null,
       prepTime: m.prepTime ?? null,
       etaAt: m.etaAt ? new Date(m.etaAt) : null,
       createdBy: m.createdBy ?? "Imported",

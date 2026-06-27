@@ -52,6 +52,7 @@ export async function POST(req: Request) {
     proveTime: body.proveTime ?? null,
 
     imagePath: body.imagePath ?? null,
+    imagePos: body.imagePos ?? null,
 
     createdBy: body.createdBy ?? "Unknown",
     createdAt: now,
@@ -134,6 +135,7 @@ export async function PUT(req: Request) {
       coolTime: body.coolTime ?? null,
       proveTime: body.proveTime ?? null,
       imagePath: body.imagePath ?? null,
+      imagePos: body.imagePos ?? null,
       updatedAt: now,
       version: nextVersion,
     })

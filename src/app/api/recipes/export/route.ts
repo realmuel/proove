@@ -67,6 +67,7 @@ export async function GET(req: Request) {
       chillTime: recipe.chillTime,
       coolTime: recipe.coolTime,
       proveTime: recipe.proveTime,
+      imagePos: recipe.imagePos,
       ingredients: ing.map((i) => ({
         name: i.name,
         amount: i.amount,

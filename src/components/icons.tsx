@@ -108,3 +108,22 @@ export const TrashIcon = ({ className, size }: Props) => (
     <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7" />
   </svg>
 );
+
+export const PlayIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="M7 5v14l11-7-11-7Z" />
+  </svg>
+);
+
+export const StopIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <rect x="6" y="6" width="12" height="12" rx="1.5" />
+  </svg>
+);
+
+export const ResetIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="M3 12a9 9 0 1 0 2.6-6.3" />
+    <path d="M3 4v5h5" />
+  </svg>
+);

@@ -16,6 +16,9 @@ import {
   TimerIcon,
   CalendarIcon,
   DownloadIcon,
+  PlayIcon,
+  StopIcon,
+  ResetIcon,
 } from "@/components/icons";
 
 type TimelineItem = {
@@ -34,8 +37,10 @@ type Meal = {
   description: string | null;
   emoji: string | null;
   imagePath: string | null;
+  imagePos: string | null;
   prepTime: number | null;
   etaAt: string | number | null;
+  running: boolean;
   createdBy: string;
   createdAt: string | number;
   updatedAt: string | number;
@@ -172,6 +177,25 @@ export default function MealClient({ id }: { id: string }) {
     });
   }
 
+  async function runAction(action: "start" | "stop" | "reset") {
+    if (!meal) return;
+    // optimistic
+    if (action === "reset") {
+      setMeal({
+        ...meal,
+        running: false,
+        timeline: meal.timeline.map((t) => ({ ...t, done: false })),
+      });
+    } else {
+      setMeal({ ...meal, running: action === "start" });
+    }
+    await fetch("/api/meals/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mealId: id, action, origin: clientId() }),
+    });
+  }
+
   if (!meal) return <p className="text-muted">Loading…</p>;
 
   const eta = meal.etaAt ? new Date(meal.etaAt) : null;
@@ -179,6 +203,8 @@ export default function MealClient({ id }: { id: string }) {
 
   const sorted = [...meal.timeline].sort((a, b) => a.order - b.order);
   const allDone = sorted.length > 0 && sorted.every((t) => t.done);
+  const anyDone = sorted.some((t) => t.done);
+  const hasRecipes = meal.recipes.length > 0;
 
   // next action = earliest not-done task (by resolved time, then order)
   const pending = sorted.filter((t) => !t.done);
@@ -192,8 +218,141 @@ export default function MealClient({ id }: { id: string }) {
         return 0;
       })[0] ?? null;
 
+  // timers only count down while started and not yet finished
+  const running = meal.running;
   const etaMs = eta ? eta.getTime() - now : null;
   const nextMs = nextAction?.at ? nextAction.at.getTime() - now : null;
+
+  const recipesSection = hasRecipes ? (
+    <section>
+      <h2 className="text-xl mb-2">Recipes</h2>
+      <div className="grid grid-cols-1 gap-2.5">
+        {meal.recipes.map((r) =>
+          r.missing ? (
+            <div
+              key={r.id}
+              className="flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl opacity-60"
+            >
+              <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
+              <span className="text-muted">{r.title}</span>
+            </div>
+          ) : (
+            <Link
+              key={r.id}
+              href={`/recipe/${r.recipeId}?from=/meal/${id}`}
+              className="flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
+            >
+              {r.imagePath ? (
+                <img
+                  src={r.imagePath}
+                  className="w-12 h-12 rounded-lg object-cover shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
+              )}
+              <span className="truncate">{r.title}</span>
+            </Link>
+          )
+        )}
+      </div>
+    </section>
+  ) : null;
+
+  const timelineSection = (
+    <section>
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="text-xl">Timeline</h2>
+        {sorted.length > 0 && (
+          <span className="text-sm text-muted tabular-nums">
+            {sorted.filter((t) => t.done).length}/{sorted.length} done
+          </span>
+        )}
+      </div>
+
+      {sorted.length === 0 ? (
+        <p className="text-muted text-sm">
+          No timeline yet.{" "}
+          <Link href={`/meal/${id}/edit`} className="text-accent">
+            Add some tasks
+          </Link>
+          .
+        </p>
+      ) : (
+        <ol className="relative flex flex-col">
+          {sorted.map((item, i) => {
+            const isNext = nextAction?.t.id === item.id;
+            const last = i === sorted.length - 1;
+            return (
+              <li key={item.id} className="flex gap-3">
+                {/* rail + node */}
+                <div className="flex flex-col items-center shrink-0">
+                  <button
+                    type="button"
+                    aria-label={item.done ? "Mark not done" : "Mark done"}
+                    onClick={() => toggle(item)}
+                    className={`h-7 w-7 rounded-full border-2 flex items-center justify-center transition shrink-0 ${
+                      item.done
+                        ? "bg-accent border-accent text-accent-fg"
+                        : isNext
+                          ? "border-accent text-accent node-pulse"
+                          : "border-border text-transparent bg-surface"
+                    }`}
+                  >
+                    <CheckIcon size={15} />
+                  </button>
+                  {!last && (
+                    <span
+                      className={`w-0.5 flex-1 my-1 ${
+                        item.done ? "bg-accent/50" : "bg-border"
+                      }`}
+                    />
+                  )}
+                </div>
+
+                {/* content */}
+                <div className={`pb-5 min-w-0 flex-1 ${last ? "pb-0" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm tabular-nums text-muted shrink-0">
+                      {item.time || "—"}
+                    </span>
+                    {isNext && (
+                      <span className="text-[10px] uppercase tracking-wide text-accent border border-accent/40 rounded-full px-1.5">
+                        Next
+                      </span>
+                    )}
+                  </div>
+                  {item.recipeId ? (
+                    <Link
+                      href={`/recipe/${item.recipeId}?from=/meal/${id}`}
+                      className={`block leading-snug underline decoration-dotted underline-offset-2 ${
+                        item.done ? "line-through opacity-50" : ""
+                      }`}
+                    >
+                      {item.content || "Untitled task"}
+                      {item.recipeTitle && (
+                        <span className="text-muted text-sm no-underline">
+                          {" "}
+                          · {item.recipeTitle}
+                        </span>
+                      )}
+                    </Link>
+                  ) : (
+                    <span
+                      className={`block leading-snug ${
+                        item.done ? "line-through opacity-50" : ""
+                      }`}
+                    >
+                      {item.content || "Untitled task"}
+                    </span>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -247,7 +406,8 @@ export default function MealClient({ id }: { id: string }) {
       {meal.imagePath && (
         <img
           src={meal.imagePath}
-          className="w-full h-52 object-cover rounded-xl"
+          style={{ objectPosition: meal.imagePos || "50% 50%" }}
+          className="w-full h-72 object-cover rounded-xl"
         />
       )}
 
@@ -259,6 +419,10 @@ export default function MealClient({ id }: { id: string }) {
           </span>
           {etaMs == null ? (
             <span className="text-muted">No ETA set</span>
+          ) : allDone ? (
+            <span className="text-2xl">Ready 🎉</span>
+          ) : !running ? (
+            <span className="text-2xl text-muted">Not started</span>
           ) : etaMs >= 0 ? (
             <span className="text-2xl tabular-nums">{countdown(etaMs)}</span>
           ) : (
@@ -285,7 +449,7 @@ export default function MealClient({ id }: { id: string }) {
                 {nextAction.t.content || "Untitled task"}
               </span>
               <span className="text-sm tabular-nums text-accent">
-                {nextMs == null
+                {!running || nextMs == null
                   ? nextAction.t.time || "anytime"
                   : nextMs >= 0
                     ? `in ${countdown(nextMs)}`
@@ -298,7 +462,38 @@ export default function MealClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Prep time + recipes */}
+      {/* Start / stop / reset */}
+      {(eta || sorted.length > 0) && (
+        <div className="flex items-center gap-2">
+          {running ? (
+            <button
+              type="button"
+              onClick={() => runAction("stop")}
+              className="btn-outline"
+            >
+              <StopIcon size={15} /> Stop
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => runAction("start")}
+              disabled={allDone}
+              className="btn-primary disabled:opacity-50"
+            >
+              <PlayIcon size={15} /> Start
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => runAction("reset")}
+            disabled={!running && !anyDone}
+            className="btn-ghost disabled:opacity-40"
+          >
+            <ResetIcon size={15} /> Reset
+          </button>
+        </div>
+      )}
+
       {meal.prepTime != null && (
         <div className="flex flex-wrap gap-2 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1">
@@ -307,135 +502,15 @@ export default function MealClient({ id }: { id: string }) {
         </div>
       )}
 
-      {meal.recipes.length > 0 && (
-        <section>
-          <h2 className="text-xl mb-2">Recipes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {meal.recipes.map((r) =>
-              r.missing ? (
-                <div
-                  key={r.id}
-                  className="flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl opacity-60"
-                >
-                  <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
-                  <span className="text-muted">{r.title}</span>
-                </div>
-              ) : (
-                <Link
-                  key={r.id}
-                  href={`/recipe/${r.recipeId}?from=/meal/${id}`}
-                  className="flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
-                >
-                  {r.imagePath ? (
-                    <img
-                      src={r.imagePath}
-                      className="w-12 h-12 rounded-lg object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
-                  )}
-                  <span className="truncate">{r.title}</span>
-                </Link>
-              )
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Timeline */}
-      <section>
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl">Timeline</h2>
-          {sorted.length > 0 && (
-            <span className="text-sm text-muted tabular-nums">
-              {sorted.filter((t) => t.done).length}/{sorted.length} done
-            </span>
-          )}
+      {/* Recipes (sticky on wide screens) + scrolling timeline */}
+      {hasRecipes ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 lg:items-start">
+          <div className="lg:sticky lg:top-4">{recipesSection}</div>
+          <div className="min-w-0">{timelineSection}</div>
         </div>
-
-        {sorted.length === 0 ? (
-          <p className="text-muted text-sm">
-            No timeline yet.{" "}
-            <Link href={`/meal/${id}/edit`} className="text-accent">
-              Add some tasks
-            </Link>
-            .
-          </p>
-        ) : (
-          <ol className="relative flex flex-col">
-            {sorted.map((item, i) => {
-              const isNext = nextAction?.t.id === item.id;
-              const last = i === sorted.length - 1;
-              return (
-                <li key={item.id} className="flex gap-3">
-                  {/* rail + node */}
-                  <div className="flex flex-col items-center shrink-0">
-                    <button
-                      type="button"
-                      aria-label={item.done ? "Mark not done" : "Mark done"}
-                      onClick={() => toggle(item)}
-                      className={`h-7 w-7 rounded-full border-2 flex items-center justify-center transition shrink-0 ${
-                        item.done
-                          ? "bg-accent border-accent text-accent-fg"
-                          : isNext
-                            ? "border-accent text-accent node-pulse"
-                            : "border-border text-transparent bg-surface"
-                      }`}
-                    >
-                      <CheckIcon size={15} />
-                    </button>
-                    {!last && (
-                      <span
-                        className={`w-0.5 flex-1 my-1 ${
-                          item.done ? "bg-accent/50" : "bg-border"
-                        }`}
-                      />
-                    )}
-                  </div>
-
-                  {/* content */}
-                  <div className={`pb-5 min-w-0 flex-1 ${last ? "pb-0" : ""}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm tabular-nums text-muted shrink-0">
-                        {item.time || "—"}
-                      </span>
-                      {isNext && (
-                        <span className="text-[10px] uppercase tracking-wide text-accent border border-accent/40 rounded-full px-1.5">
-                          Next
-                        </span>
-                      )}
-                    </div>
-                    {item.recipeId ? (
-                      <Link
-                        href={`/recipe/${item.recipeId}?from=/meal/${id}`}
-                        className={`block leading-snug underline decoration-dotted underline-offset-2 ${
-                          item.done ? "line-through opacity-50" : ""
-                        }`}
-                      >
-                        {item.content || "Untitled task"}
-                        {item.recipeTitle && (
-                          <span className="text-muted text-sm no-underline">
-                            {" "}
-                            · {item.recipeTitle}
-                          </span>
-                        )}
-                      </Link>
-                    ) : (
-                      <span
-                        className={`block leading-snug ${
-                          item.done ? "line-through opacity-50" : ""
-                        }`}
-                      >
-                        {item.content || "Untitled task"}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </section>
+      ) : (
+        timelineSection
+      )}
 
       <p className="text-xs text-muted">
         {meal.createdBy && <>By {meal.createdBy} </>}

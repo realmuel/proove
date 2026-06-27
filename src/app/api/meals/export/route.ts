@@ -79,6 +79,7 @@ export async function GET(req: Request) {
       description: meal.description,
       createdBy: meal.createdBy,
       emoji: meal.emoji,
+      imagePos: meal.imagePos,
       prepTime: meal.prepTime,
       etaAt: meal.etaAt ? new Date(meal.etaAt).toISOString() : null,
       image,

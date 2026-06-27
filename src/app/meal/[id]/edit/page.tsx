@@ -34,6 +34,7 @@ export default function EditMealPage({
           createdBy: data.createdBy ?? "",
           emoji: data.emoji ?? "",
           imagePath: data.imagePath ?? "",
+          imagePos: data.imagePos ?? "50% 50%",
           prepTime: data.prepTime ?? null,
           etaAt: data.etaAt ? toLocalInput(data.etaAt) : "",
           version: data.version ?? 1,

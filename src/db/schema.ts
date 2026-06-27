@@ -25,6 +25,8 @@ export const recipes = sqliteTable("recipes", {
   proveTime: integer("prove_time"),
 
   imagePath: text("image_path"),
+  // object-position for the hero image, e.g. "50% 30%"
+  imagePos: text("image_pos"),
 
   createdBy: text("created_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
@@ -82,12 +84,17 @@ export const meals = sqliteTable("meals", {
   emoji: text("emoji"),
 
   imagePath: text("image_path"),
+  // object-position for the hero image, e.g. "50% 30%"
+  imagePos: text("image_pos"),
 
   // overall preparation time, minutes
   prepTime: integer("prep_time"),
 
   // when the meal needs to be ready
   etaAt: integer("eta_at", { mode: "timestamp" }),
+
+  // whether the prep timers are actively counting down
+  running: integer("running", { mode: "boolean" }).notNull().default(false),
 
   createdBy: text("created_by").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),

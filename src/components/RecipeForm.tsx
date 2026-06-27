@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import { clientId } from "@/lib/useRecordEvents";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmojiPicker from "@/components/EmojiPicker";
-import { BackIcon, CheckIcon, UploadIcon } from "@/components/icons";
+import ImageField, { DEFAULT_IMAGE_POS } from "@/components/ImageField";
+import { BackIcon, CheckIcon } from "@/components/icons";
 
 /* Metric units plus the spoon measures requested. */
 export const UNITS = [
@@ -40,6 +41,7 @@ export type RecipeFormData = {
   coolTime: number | null;
   proveTime: number | null;
   imagePath: string;
+  imagePos: string;
   ingredients: Ingredient[];
   steps: Step[];
   tools: Tool[];
@@ -58,6 +60,7 @@ const EMPTY: RecipeFormData = {
   coolTime: null,
   proveTime: null,
   imagePath: "",
+  imagePos: DEFAULT_IMAGE_POS,
   ingredients: [{ name: "", amount: 0, unit: "g" }],
   steps: [{ order: 1, content: "" }],
   tools: [],
@@ -77,10 +80,8 @@ export default function RecipeForm({
   const { notify } = useToast();
   const [data, setData] = useState<RecipeFormData>({ ...EMPTY, ...initial });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   async function remove() {
     if (!recipeId) return;
@@ -120,22 +121,6 @@ export default function RecipeForm({
         />
       </label>
     );
-  }
-
-  async function uploadImage(file: File) {
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const json = await res.json();
-      set("imagePath", json.path);
-    } finally {
-      setUploading(false);
-    }
   }
 
   async function save() {
@@ -228,59 +213,12 @@ export default function RecipeForm({
       </div>
 
       {/* ---------------- Image ---------------- */}
-      <div className="flex flex-col gap-2">
-        <span className={labelCls}>Image</span>
-
-        {/* hidden native input, driven by the styled controls below */}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) uploadImage(file);
-            e.target.value = ""; // allow re-selecting the same file
-          }}
-        />
-
-        {data.imagePath ? (
-          <div className="relative">
-            <img
-              src={data.imagePath}
-              className="rounded-xl max-h-56 w-full object-cover"
-            />
-            <div className="absolute bottom-2 right-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="bg-surface/90 border rounded-lg px-3 py-1.5 text-sm font-medium"
-              >
-                Change
-              </button>
-              <button
-                type="button"
-                onClick={() => set("imagePath", "")}
-                className="bg-surface/90 border rounded-lg px-3 py-1.5 text-sm font-medium"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex flex-col items-center justify-center gap-2 border border-dashed rounded-xl py-8 text-muted disabled:opacity-50"
-          >
-            <UploadIcon size={26} />
-            <span className="text-sm font-medium">
-              {uploading ? "Uploading…" : "Upload an image"}
-            </span>
-          </button>
-        )}
-      </div>
+      <ImageField
+        imagePath={data.imagePath}
+        imagePos={data.imagePos}
+        onImagePathChange={(path) => set("imagePath", path)}
+        onImagePosChange={(pos) => set("imagePos", pos)}
+      />
 
       {/* ---------------- Times ---------------- */}
       <fieldset className="grid grid-cols-2 gap-3">

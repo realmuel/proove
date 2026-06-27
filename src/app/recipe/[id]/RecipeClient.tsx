@@ -219,7 +219,8 @@ export default function RecipeClient({
       {recipe.imagePath && (
         <img
           src={recipe.imagePath}
-          className="w-full h-52 object-cover rounded-xl"
+          style={{ objectPosition: recipe.imagePos || "50% 50%" }}
+          className="w-full h-72 object-cover rounded-xl"
         />
       )}
 
@@ -324,6 +325,16 @@ export default function RecipeClient({
           </ul>
         </section>
       )}
+
+      <p className="text-xs text-muted border-t pt-4">
+        {recipe.createdBy && <>By {recipe.createdBy} </>}
+        {recipe.emoji && <>{recipe.emoji} </>}
+        {(recipe.createdBy || recipe.emoji) && <>· </>}
+        Created {fmtDate(recipe.createdAt)}
+        {recipe.updatedAt !== recipe.createdAt && (
+          <> · Updated {fmtDate(recipe.updatedAt)}</>
+        )}
+      </p>
         </div>
 
         {/* Right: method + cooking history — scrolls past the sticky details */}
@@ -399,16 +410,6 @@ export default function RecipeClient({
       </section>
         </div>
       </div>
-
-      <p className="text-xs text-muted">
-        {recipe.createdBy && <>By {recipe.createdBy} </>}
-        {recipe.emoji && <>{recipe.emoji} </>}
-        {(recipe.createdBy || recipe.emoji) && <>· </>}
-        Created {fmtDate(recipe.createdAt)}
-        {recipe.updatedAt !== recipe.createdAt && (
-          <> · Updated {fmtDate(recipe.updatedAt)}</>
-        )}
-      </p>
     </div>
   );
 }

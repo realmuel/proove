@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       coolTime: r.coolTime ?? null,
       proveTime: r.proveTime ?? null,
       imagePath,
+      imagePos: r.imagePos ?? null,
       createdBy: r.createdBy ?? "Imported",
       createdAt: now,
       updatedAt: now,

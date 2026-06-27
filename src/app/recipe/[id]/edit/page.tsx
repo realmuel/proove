@@ -30,6 +30,7 @@ export default function EditRecipePage({
           coolTime: data.coolTime ?? null,
           proveTime: data.proveTime ?? null,
           imagePath: data.imagePath ?? "",
+          imagePos: data.imagePos ?? "50% 50%",
           ingredients:
             data.ingredients?.map((i: any) => ({
               name: i.name,

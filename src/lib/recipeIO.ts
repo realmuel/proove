@@ -26,6 +26,7 @@ export type RecipePayload = {
   chillTime: number | null;
   coolTime: number | null;
   proveTime: number | null;
+  imagePos: string | null;
   ingredients: { name: string; amount: number; unit: string }[];
   steps: { order: number; content: string }[];
   tools: { name: string }[];
@@ -76,6 +77,7 @@ export async function buildRecipePayload(
     chillTime: recipe.chillTime,
     coolTime: recipe.coolTime,
     proveTime: recipe.proveTime,
+    imagePos: recipe.imagePos,
     ingredients: ing.map((i) => ({
       name: i.name,
       amount: i.amount,
@@ -128,6 +130,7 @@ export async function createRecipeFromPayload(
       coolTime: r.coolTime ?? null,
       proveTime: r.proveTime ?? null,
       imagePath,
+      imagePos: r.imagePos ?? null,
       createdBy: r.createdBy ?? createdByFallback,
       createdAt: now,
       updatedAt: now,

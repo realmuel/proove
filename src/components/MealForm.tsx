@@ -1,16 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
 import { clientId } from "@/lib/useRecordEvents";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmojiPicker from "@/components/EmojiPicker";
+import ImageField, { DEFAULT_IMAGE_POS } from "@/components/ImageField";
 import {
   BackIcon,
   CheckIcon,
-  UploadIcon,
   ChevronUpIcon,
   ChevronDownIcon,
   TrashIcon,
@@ -28,6 +28,7 @@ export type MealFormData = {
   createdBy: string;
   emoji: string;
   imagePath: string;
+  imagePos: string;
   prepTime: number | null;
   etaAt: string; // datetime-local value, "" when unset
   version?: number;
@@ -41,6 +42,7 @@ const EMPTY: MealFormData = {
   createdBy: "",
   emoji: "",
   imagePath: "",
+  imagePos: DEFAULT_IMAGE_POS,
   prepTime: null,
   etaAt: "",
   recipes: [],
@@ -63,10 +65,8 @@ export default function MealForm({
   const { notify } = useToast();
   const [data, setData] = useState<MealFormData>({ ...EMPTY, ...initial });
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const titleById = new Map(availableRecipes.map((r) => [r.id, r.title]));
   const attachedIds = new Set(data.recipes.map((r) => r.recipeId));
@@ -74,19 +74,6 @@ export default function MealForm({
 
   function set<K extends keyof MealFormData>(key: K, value: MealFormData[K]) {
     setData((d) => ({ ...d, [key]: value }));
-  }
-
-  async function uploadImage(file: File) {
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const json = await res.json();
-      set("imagePath", json.path);
-    } finally {
-      setUploading(false);
-    }
   }
 
   function addRecipe(recipeId: string) {
@@ -250,56 +237,12 @@ export default function MealForm({
       </label>
 
       {/* ---------------- Image ---------------- */}
-      <div className="flex flex-col gap-2">
-        <span className={labelCls}>Image</span>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) uploadImage(file);
-            e.target.value = "";
-          }}
-        />
-        {data.imagePath ? (
-          <div className="relative">
-            <img
-              src={data.imagePath}
-              className="rounded-xl max-h-56 w-full object-cover"
-            />
-            <div className="absolute bottom-2 right-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="bg-surface/90 border rounded-lg px-3 py-1.5 text-sm font-medium"
-              >
-                Change
-              </button>
-              <button
-                type="button"
-                onClick={() => set("imagePath", "")}
-                className="bg-surface/90 border rounded-lg px-3 py-1.5 text-sm font-medium"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="flex flex-col items-center justify-center gap-2 border border-dashed rounded-xl py-8 text-muted disabled:opacity-50"
-          >
-            <UploadIcon size={26} />
-            <span className="text-sm font-medium">
-              {uploading ? "Uploading…" : "Upload an image"}
-            </span>
-          </button>
-        )}
-      </div>
+      <ImageField
+        imagePath={data.imagePath}
+        imagePos={data.imagePos}
+        onImagePathChange={(path) => set("imagePath", path)}
+        onImagePosChange={(pos) => set("imagePos", pos)}
+      />
 
       {/* ---------------- Recipes ---------------- */}
       <div className="flex flex-col gap-2">

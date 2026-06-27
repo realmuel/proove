@@ -1,12 +1,11 @@
 export const runtime = "nodejs";
 
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { v4 as uuid } from "uuid";
 import { randomEmoji } from "@/lib/emoji";
 import { publish } from "@/lib/events";
+import { saveEmbeddedImage } from "@/lib/recipeIO";
 
 export async function POST(req: Request) {
   let parsed: any;
@@ -27,22 +26,8 @@ export async function POST(req: Request) {
   const recipeId = uuid();
   const now = new Date();
 
-  // Decode and store an embedded image, if present.
-  let imagePath: string | null = null;
-  if (r.image?.dataUrl) {
-    const match = String(r.image.dataUrl).match(/^data:(.+?);base64,(.*)$/);
-    if (match) {
-      const ext = path.extname(r.image.filename || "") || ".jpg";
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-      await mkdir(uploadDir, { recursive: true });
-      const filename = `${Date.now()}-${uuid().slice(0, 8)}${ext}`;
-      await writeFile(
-        path.join(uploadDir, filename),
-        Buffer.from(match[2], "base64")
-      );
-      imagePath = `/uploads/${filename}`;
-    }
-  }
+  // Decode, resize and store an embedded image, if present.
+  const imagePath = await saveEmbeddedImage(r.image);
 
   db.insert(recipes)
     .values({

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { v4 as uuid } from "uuid";
 import { randomEmoji } from "@/lib/emoji";
+import { processUploadImage } from "@/lib/processImage";
 
 const MIME: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -99,11 +100,15 @@ async function saveEmbeddedImage(image: {
   if (!image?.dataUrl) return null;
   const match = String(image.dataUrl).match(/^data:(.+?);base64,(.*)$/);
   if (!match) return null;
-  const ext = path.extname(image.filename || "") || ".jpg";
+  // resize/normalise embedded images on import, same as fresh uploads
+  const { buffer, ext } = await processUploadImage(
+    Buffer.from(match[2], "base64"),
+    image.filename || ""
+  );
   const uploadDir = path.join(process.cwd(), "public/uploads");
   await mkdir(uploadDir, { recursive: true });
   const filename = `${Date.now()}-${uuid().slice(0, 8)}${ext}`;
-  await writeFile(path.join(uploadDir, filename), Buffer.from(match[2], "base64"));
+  await writeFile(path.join(uploadDir, filename), buffer);
   return `/uploads/${filename}`;
 }
 

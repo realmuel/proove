@@ -205,8 +205,7 @@ export default function MealClient({ id }: { id: string }) {
     try {
       await shareOrDownloadFile(
         `/api/meals/export?id=${id}`,
-        `${meal?.name || "meal"}.meal`,
-        meal?.name
+        `${meal?.name || "meal"}.meal`
       );
     } catch {
       notify("Could not export meal", "error");

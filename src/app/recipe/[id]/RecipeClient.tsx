@@ -60,7 +60,7 @@ export default function RecipeClient({
   const [note, setNote] = useState("");
   const [logging, setLogging] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<"recipe" | "pdf" | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   // aesthetic-only "have I got this?" ticks; intentionally not persisted
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -159,17 +159,13 @@ export default function RecipeClient({
   }
 
   async function exportFile(url: string, ext: "recipe" | "pdf") {
-    setExporting(true);
+    setExporting(ext);
     try {
-      await shareOrDownloadFile(
-        url,
-        `${recipe.title || "recipe"}.${ext}`,
-        recipe.title
-      );
+      await shareOrDownloadFile(url, `${recipe.title || "recipe"}.${ext}`);
     } catch {
       notify("Could not export recipe", "error");
     } finally {
-      setExporting(false);
+      setExporting(null);
       setExportOpen(false);
     }
   }
@@ -219,20 +215,20 @@ export default function RecipeClient({
               >
                 <button
                   type="button"
-                  disabled={exporting}
+                  disabled={exporting !== null}
                   onClick={() => exportFile(`/api/recipes/export?id=${id}`, "recipe")}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left hover:bg-background disabled:opacity-50"
                 >
-                  Recipe file
+                  {exporting === "recipe" ? "Preparing…" : "Recipe file"}
                   <span className="text-muted text-xs">.recipe</span>
                 </button>
                 <button
                   type="button"
-                  disabled={exporting}
+                  disabled={exporting !== null}
                   onClick={() => exportFile(`/api/recipes/pdf?id=${id}`, "pdf")}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left hover:bg-background disabled:opacity-50"
                 >
-                  {exporting ? "Preparing…" : "PDF document"}
+                  {exporting === "pdf" ? "Preparing…" : "PDF document"}
                   <span className="text-muted text-xs">.pdf</span>
                 </button>
               </div>

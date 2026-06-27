@@ -7,8 +7,7 @@
  * which still keeps everything inside the app. */
 export async function shareOrDownloadFile(
   url: string,
-  fallbackName: string,
-  title?: string
+  fallbackName: string
 ): Promise<void> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
@@ -22,13 +21,15 @@ export async function shareOrDownloadFile(
   const type = blob.type || "application/octet-stream";
   const file = new File([blob], filename, { type });
 
-  // Native share sheet (mobile / installed PWA).
+  // Native share sheet (mobile / installed PWA). Share the file *only* — adding
+  // a title/text makes some targets (AirDrop, Save to Files, Mail) attach it as
+  // a separate one-line text file alongside the real export.
   const nav = navigator as Navigator & {
     canShare?: (data: ShareData) => boolean;
   };
   if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: title || filename });
+      await nav.share({ files: [file] });
       return;
     } catch (err) {
       // User dismissed the sheet — nothing more to do.

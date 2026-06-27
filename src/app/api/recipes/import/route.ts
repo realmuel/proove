@@ -5,6 +5,7 @@ import path from "path";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { v4 as uuid } from "uuid";
+import { randomEmoji } from "@/lib/emoji";
 
 export async function POST(req: Request) {
   let parsed: any;
@@ -48,6 +49,7 @@ export async function POST(req: Request) {
       title: r.title,
       description: r.description ?? null,
       servings: r.servings ?? 1,
+      emoji: r.emoji || randomEmoji(),
       ovenTemp: r.ovenTemp ?? null,
       prepTime: r.prepTime ?? null,
       cookTime: r.cookTime ?? null,

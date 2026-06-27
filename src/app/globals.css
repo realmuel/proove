@@ -75,6 +75,18 @@
   textarea::placeholder {
     color: var(--muted);
   }
+
+  /* The native time/date picker indicator is near-invisible on the warm dark
+     surface — brighten it so the little clock/calendar is legible. */
+  @media (prefers-color-scheme: dark) {
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) brightness(0.9);
+      opacity: 0.85;
+      cursor: pointer;
+    }
+  }
 }
 
 @layer components {
@@ -107,4 +119,49 @@
 
 * {
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------- Meal celebration ---------------- */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* gentle pulse for the live "next action" node */
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+.node-pulse {
+  animation: node-pulse 1.8s ease-out infinite;
 }

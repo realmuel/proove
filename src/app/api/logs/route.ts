@@ -4,6 +4,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { cookLogs } from "@/db/schema";
 import { v4 as uuid } from "uuid";
+import { publish } from "@/lib/events";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
     })
     .run();
 
+  // cooking history changed — nudge anyone viewing this recipe
+  publish(`recipe:${body.recipeId}`, { type: "updated", origin: body.origin });
+
   return Response.json({ id });
 }
 
@@ -45,6 +49,9 @@ export async function DELETE(req: Request) {
     return Response.json({ error: "Missing id" }, { status: 400 });
   }
 
+  const origin = searchParams.get("origin") ?? undefined;
+  const log = db.select().from(cookLogs).where(eq(cookLogs.id, id)).get();
   db.delete(cookLogs).where(eq(cookLogs.id, id)).run();
+  if (log) publish(`recipe:${log.recipeId}`, { type: "updated", origin });
   return Response.json({ ok: true });
 }

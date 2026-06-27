@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { useWakeLock } from "@/lib/useWakeLock";
+import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
+import { formatDuration } from "@/lib/format";
 import {
   BackIcon,
   EditIcon,
@@ -37,8 +41,16 @@ function fmtLogDate(ms: number | string) {
   });
 }
 
-export default function RecipeClient({ id }: { id: string }) {
+export default function RecipeClient({
+  id,
+  backHref = "/",
+}: {
+  id: string;
+  backHref?: string;
+}) {
   const { notify } = useToast();
+  const router = useRouter();
+  const loadedRef = useRef(false);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [servings, setServings] = useState(1);
   const [logs, setLogs] = useState<CookLog[]>([]);
@@ -46,6 +58,11 @@ export default function RecipeClient({ id }: { id: string }) {
   const [logging, setLogging] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
+  // aesthetic-only "have I got this?" ticks; intentionally not persisted
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  // keep the screen awake while following a recipe
+  useWakeLock(true);
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -56,14 +73,23 @@ export default function RecipeClient({ id }: { id: string }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [exportOpen]);
 
-  useEffect(() => {
-    fetch(`/api/recipes?id=${id}`)
+  const refreshRecipe = useCallback(() => {
+    return fetch(`/api/recipes?id=${id}`)
       .then((r) => r.json())
       .then((data) => {
         setRecipe(data);
-        setServings(data.servings);
+        // only seed the servings stepper on first load, so a live refresh
+        // doesn't reset the user's adjustment
+        if (!loadedRef.current) {
+          setServings(data.servings);
+          loadedRef.current = true;
+        }
       });
   }, [id]);
+
+  useEffect(() => {
+    refreshRecipe();
+  }, [refreshRecipe]);
 
   const refreshLogs = useCallback(() => {
     fetch(`/api/logs?recipeId=${id}`)
@@ -74,6 +100,18 @@ export default function RecipeClient({ id }: { id: string }) {
   useEffect(() => {
     refreshLogs();
   }, [refreshLogs]);
+
+  // realtime: react to changes made by other viewers of this recipe
+  useRecordEvents(`recipe:${id}`, (e) => {
+    if (e.type === "deleted") {
+      notify("This recipe was deleted", "error");
+      router.push("/");
+      return;
+    }
+    refreshRecipe();
+    refreshLogs();
+    notify("Recipe updated");
+  });
 
   if (!recipe) return <p className="text-muted">Loading…</p>;
 
@@ -93,7 +131,7 @@ export default function RecipeClient({ id }: { id: string }) {
       await fetch("/api/logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: id, notes: note }),
+        body: JSON.stringify({ recipeId: id, notes: note, origin: clientId() }),
       });
       setNote("");
       refreshLogs();
@@ -104,7 +142,9 @@ export default function RecipeClient({ id }: { id: string }) {
   }
 
   async function deleteLog(logId: string) {
-    await fetch(`/api/logs?id=${logId}`, { method: "DELETE" });
+    await fetch(`/api/logs?id=${logId}&origin=${clientId()}`, {
+      method: "DELETE",
+    });
     refreshLogs();
     notify("Entry removed");
   }
@@ -113,7 +153,11 @@ export default function RecipeClient({ id }: { id: string }) {
     <div className="flex flex-col gap-6">
       {/* Action bar */}
       <div className="flex items-center justify-between">
-        <Link href="/" className="icon-btn" aria-label="Back to recipes">
+        <Link
+          href={backHref}
+          className="icon-btn"
+          aria-label={backHref === "/" ? "Back to recipes" : "Back to meal"}
+        >
           <BackIcon size={20} />
         </Link>
         <div className="flex items-center gap-2">
@@ -188,7 +232,7 @@ export default function RecipeClient({ id }: { id: string }) {
               className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1"
             >
               <ClockIcon size={14} />
-              {label} {v}m
+              {label} {formatDuration(v)}
             </span>
           ))}
           {recipe.ovenTemp != null && (
@@ -223,15 +267,48 @@ export default function RecipeClient({ id }: { id: string }) {
 
       <section>
         <h2 className="text-xl mb-2">Ingredients</h2>
-        <ul className="flex flex-col gap-1.5">
-          {recipe.ingredients.map((ing: any) => (
-            <li key={ing.id} className="flex gap-3">
-              <span className="text-muted tabular-nums shrink-0 w-20">
-                {fmt(ing.amount * scale)} {ing.unit}
-              </span>
-              <span className="min-w-0 break-words">{ing.name}</span>
-            </li>
-          ))}
+        <ul className="flex flex-col gap-0.5">
+          {recipe.ingredients.map((ing: any) => {
+            const on = checked.has(ing.id);
+            return (
+              <li key={ing.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setChecked((prev) => {
+                      const next = new Set(prev);
+                      next.has(ing.id) ? next.delete(ing.id) : next.add(ing.id);
+                      return next;
+                    })
+                  }
+                  className="flex gap-3 items-baseline w-full text-left py-1 rounded-lg active:bg-background/60 transition"
+                >
+                  <span
+                    aria-hidden
+                    className={`mt-0.5 shrink-0 h-[18px] w-[18px] rounded border flex items-center justify-center self-center transition ${
+                      on ? "bg-accent border-accent text-accent-fg" : "bg-surface"
+                    }`}
+                  >
+                    {on && <CheckIcon size={12} />}
+                  </span>
+                  <span
+                    className={`text-muted tabular-nums shrink-0 w-20 ${
+                      on ? "line-through opacity-50" : ""
+                    }`}
+                  >
+                    {fmt(ing.amount * scale)} {ing.unit}
+                  </span>
+                  <span
+                    className={`min-w-0 break-words ${
+                      on ? "line-through opacity-50" : ""
+                    }`}
+                  >
+                    {ing.name}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -324,7 +401,9 @@ export default function RecipeClient({ id }: { id: string }) {
       </div>
 
       <p className="text-xs text-muted">
-        {recipe.createdBy && <>By {recipe.createdBy} · </>}
+        {recipe.createdBy && <>By {recipe.createdBy} </>}
+        {recipe.emoji && <>{recipe.emoji} </>}
+        {(recipe.createdBy || recipe.emoji) && <>· </>}
         Created {fmtDate(recipe.createdAt)}
         {recipe.updatedAt !== recipe.createdAt && (
           <> · Updated {fmtDate(recipe.updatedAt)}</>

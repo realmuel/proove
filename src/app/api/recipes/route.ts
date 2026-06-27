@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools, cookLogs } from "@/db/schema";
 import { v4 as uuid } from "uuid";
+import { publish } from "@/lib/events";
+import { randomEmoji } from "@/lib/emoji";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -40,6 +42,7 @@ export async function POST(req: Request) {
     title: body.title,
     description: body.description ?? null,
     servings: body.servings,
+    emoji: body.emoji || randomEmoji(),
 
     ovenTemp: body.ovenTemp ?? null,
     prepTime: body.prepTime ?? null,
@@ -98,12 +101,32 @@ export async function PUT(req: Request) {
   const body = await req.json();
   const now = new Date();
 
+  const current = db.select().from(recipes).where(eq(recipes.id, id)).get();
+  if (!current) {
+    return Response.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Optimistic concurrency: reject the write if the recipe changed since the
+  // client loaded it. The client decides whether to reload and retry.
+  if (body.baseVersion != null && current.version !== body.baseVersion) {
+    return Response.json(
+      {
+        error: "This recipe was changed by someone else. Reload to see the latest.",
+        currentVersion: current.version,
+      },
+      { status: 409 }
+    );
+  }
+
+  const nextVersion = (current.version ?? 1) + 1;
+
   // update the recipe row (createdAt/createdBy left untouched)
   db.update(recipes)
     .set({
       title: body.title,
       description: body.description ?? null,
       servings: body.servings,
+      emoji: body.emoji || current.emoji || randomEmoji(),
       ovenTemp: body.ovenTemp ?? null,
       prepTime: body.prepTime ?? null,
       cookTime: body.cookTime ?? null,
@@ -112,6 +135,7 @@ export async function PUT(req: Request) {
       proveTime: body.proveTime ?? null,
       imagePath: body.imagePath ?? null,
       updatedAt: now,
+      version: nextVersion,
     })
     .where(eq(recipes.id, id))
     .run();
@@ -150,7 +174,13 @@ export async function PUT(req: Request) {
       .run();
   }
 
-  return Response.json({ id });
+  publish(`recipe:${id}`, {
+    type: "updated",
+    version: nextVersion,
+    origin: body.origin,
+  });
+
+  return Response.json({ id, version: nextVersion });
 }
 
 export async function DELETE(req: Request) {
@@ -165,6 +195,8 @@ export async function DELETE(req: Request) {
   db.delete(tools).where(eq(tools.recipeId, id)).run();
   db.delete(cookLogs).where(eq(cookLogs.recipeId, id)).run();
   db.delete(recipes).where(eq(recipes.id, id)).run();
+
+  publish(`recipe:${id}`, { type: "deleted" });
 
   return Response.json({ ok: true });
 }

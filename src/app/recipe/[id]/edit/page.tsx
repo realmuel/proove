@@ -21,6 +21,8 @@ export default function EditRecipePage({
           description: data.description ?? "",
           servings: data.servings ?? 1,
           createdBy: data.createdBy ?? "",
+          emoji: data.emoji ?? "",
+          version: data.version ?? 1,
           ovenTemp: data.ovenTemp ?? null,
           prepTime: data.prepTime ?? null,
           cookTime: data.cookTime ?? null,

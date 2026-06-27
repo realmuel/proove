@@ -75,3 +75,36 @@ export const ImportIcon = ({ className, size }: Props) => (
     <path d="M5 21h14" />
   </svg>
 );
+
+export const CalendarIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <rect x="3" y="4.5" width="18" height="16" rx="2" />
+    <path d="M3 9h18M8 2.5v4M16 2.5v4" />
+  </svg>
+);
+
+export const TimerIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="M10 2h4" />
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 13V9" />
+  </svg>
+);
+
+export const ChevronUpIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="m6 14 6-6 6 6" />
+  </svg>
+);
+
+export const ChevronDownIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="m6 10 6 6 6-6" />
+  </svg>
+);
+
+export const TrashIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7" />
+  </svg>
+);

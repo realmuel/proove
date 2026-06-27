@@ -4,7 +4,9 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/Toast";
+import { clientId } from "@/lib/useRecordEvents";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import EmojiPicker from "@/components/EmojiPicker";
 import { BackIcon, CheckIcon, UploadIcon } from "@/components/icons";
 
 /* Metric units plus the spoon measures requested. */
@@ -28,6 +30,9 @@ export type RecipeFormData = {
   description: string;
   servings: number;
   createdBy: string;
+  emoji: string;
+  /* concurrency token of the loaded recipe; undefined for new recipes */
+  version?: number;
   ovenTemp: number | null;
   prepTime: number | null;
   cookTime: number | null;
@@ -45,6 +50,7 @@ const EMPTY: RecipeFormData = {
   description: "",
   servings: 2,
   createdBy: "",
+  emoji: "",
   ovenTemp: null,
   prepTime: null,
   cookTime: null,
@@ -138,6 +144,8 @@ export default function RecipeForm({
     const payload = {
       ...data,
       steps: data.steps.map((s, i) => ({ ...s, order: i + 1 })),
+      baseVersion: data.version,
+      origin: clientId(),
     };
 
     const res = await fetch(
@@ -148,6 +156,13 @@ export default function RecipeForm({
         body: JSON.stringify(payload),
       }
     );
+
+    if (res.status === 409) {
+      setSaving(false);
+      const { error } = await res.json().catch(() => ({ error: "" }));
+      notify(error || "This recipe was changed elsewhere.", "error");
+      return;
+    }
 
     if (!res.ok) {
       setSaving(false);
@@ -175,14 +190,20 @@ export default function RecipeForm({
         </h1>
       </header>
 
-      <label className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <span className={labelCls}>Title</span>
-        <input
-          className={inputCls}
-          value={data.title}
-          onChange={(e) => set("title", e.target.value)}
-        />
-      </label>
+        <div className="flex gap-2 items-stretch">
+          <input
+            className={inputCls}
+            value={data.title}
+            onChange={(e) => set("title", e.target.value)}
+          />
+          <EmojiPicker
+            value={data.emoji}
+            onChange={(emoji) => set("emoji", emoji)}
+          />
+        </div>
+      </div>
 
       <label className="flex flex-col gap-1">
         <span className={labelCls}>Description</span>

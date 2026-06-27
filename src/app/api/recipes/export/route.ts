@@ -60,6 +60,7 @@ export async function GET(req: Request) {
       description: recipe.description,
       servings: recipe.servings,
       createdBy: recipe.createdBy,
+      emoji: recipe.emoji,
       ovenTemp: recipe.ovenTemp,
       prepTime: recipe.prepTime,
       cookTime: recipe.cookTime,

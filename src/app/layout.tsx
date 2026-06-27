@@ -28,12 +28,12 @@ const redaction35 = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Recipes",
+  title: "Proove",
   description: "A simple personal recipe app",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Recipes",
+    title: "Proove",
   },
 };
 

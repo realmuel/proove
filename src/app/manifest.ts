@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Recipes",
-    short_name: "Recipes",
+    name: "Proove",
+    short_name: "Proove",
     description: "A simple personal recipe app",
     start_url: "/",
     display: "standalone",

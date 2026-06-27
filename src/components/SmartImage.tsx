@@ -2,13 +2,18 @@
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
 
-/* An <img> that shows a warm shimmer placeholder until the image has actually
-   decoded, then fades it in. Avoids the half-loaded / popping-in look and gives
-   a graceful state when an image is slow or fails.
+/* An <img> with a soft shimmer placeholder while it loads.
 
-   Handles the cached-image race: if the browser already has the image, `onLoad`
-   may fire before React attaches the handler, so we also check `complete` once
-   the element is mounted. */
+   Crucially, the image's visibility never depends on a JS load event firing.
+   The skeleton sits *behind* the image, which is rendered at full opacity on
+   top — so the moment the browser paints the picture it covers the skeleton,
+   whether or not React saw the `load` event. (Gating the image's own opacity on
+   a `loaded` flag was leaving cached/raced images stuck blank until a refresh.)
+
+   The `loaded` flag is only used to stop the shimmer. A failed fetch is retried
+   a couple of times with a cache-bust, since image requests can hiccup on flaky
+   connections — so a transient miss recovers on its own instead of needing a
+   manual refresh. */
 export default function SmartImage({
   src,
   alt = "",
@@ -24,40 +29,39 @@ export default function SmartImage({
 }) {
   const ref = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
+  // Reconcile with the real element state (covers an image that finished
+  // loading before React attached onLoad, e.g. from cache).
   useEffect(() => {
     const img = ref.current;
-    if (img && img.complete) {
-      // already decoded (e.g. from cache) — reveal immediately
-      if (img.naturalWidth > 0) {
-        setLoaded(true);
-        setFailed(false);
-      } else {
-        setFailed(true);
-      }
-    } else {
-      // new source: wait for onLoad/onError
-      setLoaded(false);
-      setFailed(false);
-    }
-  }, [src]);
+    setLoaded(!!(img && img.complete && img.naturalWidth > 0));
+  }, [src, attempt]);
+
+  // Cache-bust on retry so the browser genuinely refetches.
+  const url =
+    attempt === 0 ? src : `${src}${src.includes("?") ? "&" : "?"}retry=${attempt}`;
 
   return (
     <div className={`relative overflow-hidden bg-accent/10 ${wrapperClassName}`}>
-      {!loaded && !failed && (
-        <div className="absolute inset-0 animate-pulse bg-accent/10" aria-hidden />
-      )}
+      {/* skeleton behind the image */}
+      <div
+        aria-hidden
+        className={`absolute inset-0 ${
+          loaded ? "" : "bg-accent/10 animate-pulse"
+        }`}
+      />
       <img
+        key={url}
         ref={ref}
-        src={src}
+        src={url}
         alt={alt}
         style={style}
+        decoding="async"
         onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-        className={`${imgClassName} transition-opacity duration-500 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
+        onError={() => setAttempt((a) => (a < 2 ? a + 1 : a))}
+        // `relative` keeps the image painted above the absolutely-placed skeleton
+        className={`relative ${imgClassName}`}
       />
     </div>
   );

@@ -1,27 +1,12 @@
-# Run the whole app in a single container:
-#
-#   docker compose up -d --build
-#
-# Then open http://localhost:3103
-#
-# No environment variables to set. The SQLite database is created automatically
-# on first start if the volume is empty.
 services:
   proove:
     build: .
     image: proove
     container_name: proove
     restart: unless-stopped
+    user: "1000:1000"
     ports:
-      # host:container — change the left-hand number to pick a different host
-      # port; the container always listens on 3103.
       - "3103:3103"
     volumes:
-      # SQLite database (auto-created on first run)
-      - proove-db:/app/data
-      # uploaded recipe / meal images
-      - proove-uploads:/app/public/uploads
-
-volumes:
-  proove-db:
-  proove-uploads:
+      - /apps/home/proove/data:/app/data
+      - /apps/home/proove/uploads:/app/public/uploads

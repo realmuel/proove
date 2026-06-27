@@ -1,6 +1,7 @@
 "use client";
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
+import { ImagePlaceholderIcon } from "@/components/icons";
 
 /* An <img> with a soft shimmer placeholder while it loads.
 
@@ -30,10 +31,14 @@ export default function SmartImage({
   const ref = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  const MAX_ATTEMPTS = 2;
 
   // Reconcile with the real element state (covers an image that finished
   // loading before React attached onLoad, e.g. from cache).
   useEffect(() => {
+    setFailed(false);
     const img = ref.current;
     setLoaded(!!(img && img.complete && img.naturalWidth > 0));
   }, [src, attempt]);
@@ -41,6 +46,20 @@ export default function SmartImage({
   // Cache-bust on retry so the browser genuinely refetches.
   const url =
     attempt === 0 ? src : `${src}${src.includes("?") ? "&" : "?"}retry=${attempt}`;
+
+  // After retries are exhausted, show a themed stand-in instead of the
+  // browser's broken-image glyph.
+  if (failed) {
+    return (
+      <div
+        className={`relative overflow-hidden bg-accent/10 grid place-items-center text-accent/60 ${wrapperClassName}`}
+        role="img"
+        aria-label={alt || "Image unavailable"}
+      >
+        <ImagePlaceholderIcon size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className={`relative overflow-hidden bg-accent/10 ${wrapperClassName}`}>
@@ -59,7 +78,10 @@ export default function SmartImage({
         style={style}
         decoding="async"
         onLoad={() => setLoaded(true)}
-        onError={() => setAttempt((a) => (a < 2 ? a + 1 : a))}
+        onError={() => {
+          if (attempt < MAX_ATTEMPTS) setAttempt((a) => a + 1);
+          else setFailed(true);
+        }}
         // `relative` keeps the image painted above the absolutely-placed skeleton
         className={`relative ${imgClassName}`}
       />

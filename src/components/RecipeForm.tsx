@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { clientId } from "@/lib/useRecordEvents";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmojiPicker from "@/components/EmojiPicker";
+import QtyInput from "@/components/QtyInput";
 import ImageField, { DEFAULT_IMAGE_POS } from "@/components/ImageField";
 import { BackIcon, CheckIcon } from "@/components/icons";
 
@@ -236,14 +237,13 @@ export default function RecipeForm({
         <h2 className="text-lg">Ingredients</h2>
         {data.ingredients.map((ing, i) => (
           <div key={i} className="flex gap-2">
-            <input
-              type="number"
+            <QtyInput
               className="border rounded-lg p-2 w-20"
-              placeholder="Qty"
-              value={ing.amount || ""}
-              onChange={(e) => {
+              amount={ing.amount}
+              unit={ing.unit}
+              onAmountChange={(amount) => {
                 const next = [...data.ingredients];
-                next[i] = { ...ing, amount: Number(e.target.value) };
+                next[i] = { ...ing, amount };
                 set("ingredients", next);
               }}
             />

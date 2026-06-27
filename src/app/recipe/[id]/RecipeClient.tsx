@@ -7,7 +7,7 @@ import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
 import { shareOrDownloadFile } from "@/lib/share";
-import { formatDuration } from "@/lib/format";
+import { formatDuration, formatAmount } from "@/lib/format";
 import SmartImage from "@/components/SmartImage";
 import { RecipeSkeleton } from "@/components/Skeletons";
 import {
@@ -20,11 +20,6 @@ import {
 
 type Recipe = any;
 type CookLog = { id: string; cookedAt: string; notes: string | null };
-
-/* trim trailing zeros: 200.00 -> 200, 66.666 -> 66.67 */
-function fmt(n: number) {
-  return parseFloat(n.toFixed(2)).toString();
-}
 
 function fmtDate(ms: number | string) {
   return new Date(ms).toLocaleDateString(undefined, {
@@ -336,7 +331,7 @@ export default function RecipeClient({
                       on ? "line-through opacity-50" : ""
                     }`}
                   >
-                    {fmt(ing.amount * scale)} {ing.unit}
+                    {formatAmount(ing.amount * scale, ing.unit)} {ing.unit}
                   </span>
                   <span
                     className={`min-w-0 break-words ${

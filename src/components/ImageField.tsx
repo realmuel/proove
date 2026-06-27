@@ -54,6 +54,9 @@ export default function ImageField({
   }
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // Don't hijack presses on the Change/Remove buttons — capturing the pointer
+    // here would swallow their click (the bug where they were unclickable).
+    if ((e.target as HTMLElement).closest("button")) return;
     dragging.current = true;
     moved.current = false;
     const { x, y } = parsePos(imagePos);

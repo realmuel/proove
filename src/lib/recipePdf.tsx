@@ -9,6 +9,7 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import { formatAmount } from "@/lib/format";
 
 /* ---- register Redaction (OTF) once ---- */
 const fontDir = path.join(process.cwd(), "src/lib/pdf-fonts");
@@ -115,9 +116,6 @@ const s = StyleSheet.create({
   },
 });
 
-function fmt(n: number) {
-  return parseFloat(Number(n).toFixed(2)).toString();
-}
 
 export type PdfRecipe = {
   title: string;
@@ -194,7 +192,7 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
           {ingredients.map((ing, i) => (
             <View key={i} style={s.ingRow}>
               <Text style={s.ingQty}>
-                {fmt(ing.amount)} {ing.unit}
+                {formatAmount(ing.amount, ing.unit)} {ing.unit}
               </Text>
               <Text>{ing.name}</Text>
             </View>

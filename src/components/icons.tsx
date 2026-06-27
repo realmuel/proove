@@ -49,6 +49,16 @@ export const UploadIcon = ({ className, size }: Props) => (
   </svg>
 );
 
+/* Stand-in shown when a recipe/meal image can't be loaded — a framed photo
+   with a little sun-and-hills scene, in the app's stroked style. */
+export const ImagePlaceholderIcon = ({ className, size }: Props) => (
+  <svg {...base(size, className)}>
+    <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
+    <circle cx="8.5" cy="9.5" r="1.6" />
+    <path d="M3 16.5 8 12l3.5 3.5L15 12l6 5.5" />
+  </svg>
+);
+
 export const ClockIcon = ({ className, size }: Props) => (
   <svg {...base(size, className)}>
     <circle cx="12" cy="12" r="9" />

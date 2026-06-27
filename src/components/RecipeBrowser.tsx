@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
+import { useRecordEvents } from "@/lib/useRecordEvents";
+import SmartImage from "@/components/SmartImage";
 import { PlusIcon, SearchIcon, ImportIcon } from "@/components/icons";
 
 export type BrowserItem = {
@@ -53,9 +55,10 @@ function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
       className="animate-rise relative flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
     >
       {item.imagePath ? (
-        <img
+        <SmartImage
           src={item.imagePath}
-          className="w-16 h-16 rounded-lg object-cover shrink-0"
+          wrapperClassName="w-16 h-16 rounded-lg shrink-0"
+          imgClassName="w-16 h-16 object-cover"
         />
       ) : (
         <div className="w-16 h-16 rounded-lg bg-accent/10 border shrink-0 grid place-items-center select-none">
@@ -97,6 +100,10 @@ export default function RecipeBrowser({
   const lastJump = useRef<string>("");
   const [newOpen, setNewOpen] = useState(false);
   const newRef = useRef<HTMLDivElement>(null);
+
+  // Live-update the list when anyone adds, edits or removes a recipe or meal.
+  // router.refresh() re-runs the server component and feeds fresh items in.
+  useRecordEvents("home", () => router.refresh());
 
   useEffect(() => {
     if (!newOpen) return;
@@ -182,7 +189,7 @@ export default function RecipeBrowser({
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-center justify-between">
-        <h1 className="text-5xl tracking-tight">Proove</h1>
+        <h1 className="text-5xl tracking-tight text-accent">Proove</h1>
         <div className="flex items-center gap-2">
           <input
             ref={importRef}
@@ -198,7 +205,7 @@ export default function RecipeBrowser({
           <button
             type="button"
             onClick={() => importRef.current?.click()}
-            className="icon-btn"
+            className="icon-btn text-accent"
             aria-label="Import"
             title="Import a .recipe or .meal file"
           >
@@ -207,7 +214,7 @@ export default function RecipeBrowser({
           <div className="relative" ref={newRef}>
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn text-accent"
               aria-label="Create new"
               aria-haspopup="menu"
               aria-expanded={newOpen}

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { v4 as uuid } from "uuid";
 import { randomEmoji } from "@/lib/emoji";
+import { publish } from "@/lib/events";
 
 export async function POST(req: Request) {
   let parsed: any;
@@ -92,6 +93,8 @@ export async function POST(req: Request) {
       .values({ id: uuid(), recipeId, name: tool.name })
       .run();
   }
+
+  publish("home", { type: "updated" });
 
   return Response.json({ id: recipeId });
 }

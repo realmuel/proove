@@ -5,6 +5,7 @@ import { meals, mealRecipes, mealTimeline } from "@/db/schema";
 import { v4 as uuid } from "uuid";
 import { createRecipeFromPayload, saveEmbeddedImage } from "@/lib/recipeIO";
 import { randomEmoji } from "@/lib/emoji";
+import { publish } from "@/lib/events";
 
 export async function POST(req: Request) {
   let parsed: any;
@@ -74,6 +75,8 @@ export async function POST(req: Request) {
       })
       .run();
   });
+
+  publish("home", { type: "updated" });
 
   return Response.json({ id: mealId });
 }

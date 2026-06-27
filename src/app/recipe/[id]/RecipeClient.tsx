@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
+import { shareOrDownloadFile } from "@/lib/share";
 import { formatDuration } from "@/lib/format";
+import SmartImage from "@/components/SmartImage";
+import { RecipeSkeleton } from "@/components/Skeletons";
 import {
   BackIcon,
   EditIcon,
@@ -57,6 +60,7 @@ export default function RecipeClient({
   const [note, setNote] = useState("");
   const [logging, setLogging] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   // aesthetic-only "have I got this?" ticks; intentionally not persisted
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -113,7 +117,7 @@ export default function RecipeClient({
     notify("Recipe updated");
   });
 
-  if (!recipe) return <p className="text-muted">Loading…</p>;
+  if (!recipe) return <RecipeSkeleton />;
 
   const scale = servings / recipe.servings;
 
@@ -152,6 +156,22 @@ export default function RecipeClient({
     });
     refreshLogs();
     notify("Entry removed");
+  }
+
+  async function exportFile(url: string, ext: "recipe" | "pdf") {
+    setExporting(true);
+    try {
+      await shareOrDownloadFile(
+        url,
+        `${recipe.title || "recipe"}.${ext}`,
+        recipe.title
+      );
+    } catch {
+      notify("Could not export recipe", "error");
+    } finally {
+      setExporting(false);
+      setExportOpen(false);
+    }
   }
 
   // The "By … · Created …" credit. On wide screens it closes the left details
@@ -197,22 +217,24 @@ export default function RecipeClient({
                 role="menu"
                 className="absolute right-0 mt-2 w-48 bg-surface border rounded-xl p-1 shadow-lg z-10"
               >
-                <a
-                  href={`/api/recipes/export?id=${id}`}
-                  onClick={() => setExportOpen(false)}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-background"
+                <button
+                  type="button"
+                  disabled={exporting}
+                  onClick={() => exportFile(`/api/recipes/export?id=${id}`, "recipe")}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left hover:bg-background disabled:opacity-50"
                 >
                   Recipe file
                   <span className="text-muted text-xs">.recipe</span>
-                </a>
-                <a
-                  href={`/api/recipes/pdf?id=${id}`}
-                  onClick={() => setExportOpen(false)}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-background"
+                </button>
+                <button
+                  type="button"
+                  disabled={exporting}
+                  onClick={() => exportFile(`/api/recipes/pdf?id=${id}`, "pdf")}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left hover:bg-background disabled:opacity-50"
                 >
-                  PDF document
+                  {exporting ? "Preparing…" : "PDF document"}
                   <span className="text-muted text-xs">.pdf</span>
-                </a>
+                </button>
               </div>
             )}
           </div>
@@ -237,10 +259,11 @@ export default function RecipeClient({
       </div>
 
       {recipe.imagePath && (
-        <img
+        <SmartImage
           src={recipe.imagePath}
           style={{ objectPosition: recipe.imagePos || "50% 50%" }}
-          className="w-full h-72 object-cover rounded-xl"
+          wrapperClassName="w-full h-72 rounded-xl"
+          imgClassName="w-full h-72 object-cover"
         />
       )}
 

@@ -128,9 +128,10 @@
            border bg-surface text-foreground transition active:scale-[0.95];
   }
   /* Translucent variant for the sticky top-bar icons: lets content show through
-     (with a soft blur) as you scroll past, without a full-width banner. */
+     (with a soft blur) as you scroll past, without a full-width banner. The
+     terracotta accent marks them as the page's actions. */
   .icon-btn-float {
-    @apply bg-surface/65 backdrop-blur-sm;
+    @apply bg-surface/65 backdrop-blur-sm text-accent;
   }
 
   /* Sticky top action bar — just keeps the icon row pinned near the top while

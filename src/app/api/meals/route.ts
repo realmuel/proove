@@ -124,6 +124,8 @@ export async function POST(req: Request) {
 
   writeChildren(id, body);
 
+  publish("home", { type: "updated", origin: body.origin });
+
   return Response.json({ id });
 }
 
@@ -156,6 +158,7 @@ export async function PUT(req: Request) {
       name: body.name,
       description: body.description ?? null,
       emoji: body.emoji || current.emoji || randomEmoji(),
+      createdBy: body.createdBy ?? current.createdBy,
       imagePath: body.imagePath ?? null,
       imagePos: body.imagePos ?? null,
       prepTime: body.prepTime ?? null,
@@ -176,6 +179,7 @@ export async function PUT(req: Request) {
     version: nextVersion,
     origin: body.origin,
   });
+  publish("home", { type: "updated", origin: body.origin });
 
   return Response.json({ id, version: nextVersion });
 }
@@ -190,6 +194,7 @@ export async function DELETE(req: Request) {
   db.delete(meals).where(eq(meals.id, id)).run();
 
   publish(`meal:${id}`, { type: "deleted" });
+  publish("home", { type: "deleted" });
 
   return Response.json({ ok: true });
 }

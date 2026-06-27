@@ -89,6 +89,8 @@ export async function POST(req: Request) {
     }).run();
   }
 
+  publish("home", { type: "updated", origin: body.origin });
+
   return Response.json({ id: recipeId });
 }
 
@@ -128,6 +130,7 @@ export async function PUT(req: Request) {
       description: body.description ?? null,
       servings: body.servings,
       emoji: body.emoji || current.emoji || randomEmoji(),
+      createdBy: body.createdBy ?? current.createdBy,
       ovenTemp: body.ovenTemp ?? null,
       prepTime: body.prepTime ?? null,
       cookTime: body.cookTime ?? null,
@@ -181,6 +184,7 @@ export async function PUT(req: Request) {
     version: nextVersion,
     origin: body.origin,
   });
+  publish("home", { type: "updated", origin: body.origin });
 
   return Response.json({ id, version: nextVersion });
 }
@@ -199,6 +203,7 @@ export async function DELETE(req: Request) {
   db.delete(recipes).where(eq(recipes.id, id)).run();
 
   publish(`recipe:${id}`, { type: "deleted" });
+  publish("home", { type: "deleted" });
 
   return Response.json({ ok: true });
 }

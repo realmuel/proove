@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
+import { shareOrDownloadFile } from "@/lib/share";
 import { formatDuration } from "@/lib/format";
 import Celebration from "@/components/Celebration";
+import SmartImage from "@/components/SmartImage";
+import { MealSkeleton } from "@/components/Skeletons";
 import {
   BackIcon,
   EditIcon,
@@ -103,6 +106,7 @@ export default function MealClient({ id }: { id: string }) {
   const [now, setNow] = useState(() => Date.now());
   const [celebrate, setCelebrate] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const prevAllDone = useRef(false);
@@ -196,7 +200,23 @@ export default function MealClient({ id }: { id: string }) {
     });
   }
 
-  if (!meal) return <p className="text-muted">Loading…</p>;
+  async function exportFile() {
+    setExporting(true);
+    try {
+      await shareOrDownloadFile(
+        `/api/meals/export?id=${id}`,
+        `${meal?.name || "meal"}.meal`,
+        meal?.name
+      );
+    } catch {
+      notify("Could not export meal", "error");
+    } finally {
+      setExporting(false);
+      setExportOpen(false);
+    }
+  }
+
+  if (!meal) return <MealSkeleton />;
 
   const eta = meal.etaAt ? new Date(meal.etaAt) : null;
   const anchor = eta ?? new Date();
@@ -247,9 +267,10 @@ export default function MealClient({ id }: { id: string }) {
               className="flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
             >
               {r.imagePath ? (
-                <img
+                <SmartImage
                   src={r.imagePath}
-                  className="w-12 h-12 rounded-lg object-cover shrink-0"
+                  wrapperClassName="w-12 h-12 rounded-lg shrink-0"
+                  imgClassName="w-12 h-12 object-cover"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
@@ -384,14 +405,15 @@ export default function MealClient({ id }: { id: string }) {
                 role="menu"
                 className="absolute right-0 mt-2 w-44 bg-surface border rounded-xl p-1 shadow-lg z-10"
               >
-                <a
-                  href={`/api/meals/export?id=${id}`}
-                  onClick={() => setExportOpen(false)}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg text-sm hover:bg-background"
+                <button
+                  type="button"
+                  disabled={exporting}
+                  onClick={exportFile}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left hover:bg-background disabled:opacity-50"
                 >
-                  Meal file
+                  {exporting ? "Preparing…" : "Meal file"}
                   <span className="text-muted text-xs">.meal</span>
-                </a>
+                </button>
               </div>
             )}
           </div>
@@ -408,10 +430,11 @@ export default function MealClient({ id }: { id: string }) {
       </div>
 
       {meal.imagePath && (
-        <img
+        <SmartImage
           src={meal.imagePath}
           style={{ objectPosition: meal.imagePos || "50% 50%" }}
-          className="w-full h-72 object-cover rounded-xl"
+          wrapperClassName="w-full h-72 rounded-xl"
+          imgClassName="w-full h-72 object-cover"
         />
       )}
 

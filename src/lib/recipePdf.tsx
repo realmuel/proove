@@ -31,11 +31,11 @@ function ensureFonts() {
     src: path.join(fontDir, "Redaction35-Regular.otf"),
   });
   // Redaction has no emoji glyphs, so render any emoji (e.g. in the byline) as
-  // Twemoji images. Fetched lazily at render time; if it's unreachable the
+  // Apple-style images. Fetched lazily at render time; if it's unreachable the
   // emoji is silently dropped and the rest of the PDF still renders.
   Font.registerEmojiSource({
     format: "png",
-    url: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/",
+    url: "https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.1.2/img/apple/64/",
   });
   // wrap normally at spaces, but break very long unbroken words so they
   // don't run off the page

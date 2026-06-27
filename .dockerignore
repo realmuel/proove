@@ -1,0 +1,30 @@
+# Dependencies are installed (and native modules compiled) inside the image —
+# never copy the host's node_modules in, or the Linux build gets macOS binaries.
+node_modules
+.next
+out
+build
+
+# VCS / tooling
+.git
+.gitignore
+.DS_Store
+*.tsbuildinfo
+.vscode
+.idea
+
+# Local database + uploads live on volumes, not in the image
+sqlite.db
+sqlite.db-*
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs / env / Claude local settings
+npm-debug.log*
+.env*
+.claude/settings.local.json
+
+# Docker artifacts (not needed in the build context)
+Dockerfile
+.dockerignore
+docker-compose.yml

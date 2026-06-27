@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local sqlite database
+sqlite.db
+sqlite.db-*
+
+# runtime-uploaded images
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# claude code local settings
+.claude/settings.local.json

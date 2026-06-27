@@ -1,6 +1,6 @@
 services:
   proove:
-    build: .
+    build: realmuel/proove:latest
     image: proove
     container_name: proove
     restart: unless-stopped

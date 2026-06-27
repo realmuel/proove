@@ -44,12 +44,13 @@ function relativeDay(ms: number) {
   });
 }
 
-function Card({ item }: { item: BrowserItem }) {
+function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
   const isMeal = item.kind === "meal";
   return (
     <Link
       href={isMeal ? `/meal/${item.id}` : `/recipe/${item.id}`}
-      className="relative flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
+      style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
+      className="animate-rise relative flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
     >
       {item.imagePath ? (
         <img
@@ -265,9 +266,34 @@ export default function RecipeBrowser({
       </div>
 
       {items.length === 0 ? (
-        <p className="text-muted text-center py-10">
-          Nothing yet. Tap + to create your first recipe or meal.
-        </p>
+        <div className="animate-rise flex flex-col items-center text-center gap-4 py-16">
+          <div className="h-20 w-20 rounded-2xl bg-accent/10 border grid place-items-center select-none">
+            <span className="text-4xl leading-none">🍞</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-2xl">Your recipe book is empty</h2>
+            <p className="text-muted max-w-xs">
+              Add your first recipe or meal, or bring one in from a{" "}
+              <span className="whitespace-nowrap">.recipe</span> or{" "}
+              <span className="whitespace-nowrap">.meal</span> file.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <Link href="/new" className="btn-primary">
+              <PlusIcon size={16} /> New recipe
+            </Link>
+            <Link href="/meal/new" className="btn-outline">
+              New meal
+            </Link>
+            <button
+              type="button"
+              onClick={() => importRef.current?.click()}
+              className="btn-ghost"
+            >
+              <ImportIcon size={16} /> Import
+            </button>
+          </div>
+        </div>
       ) : searching ? (
         filtered.length === 0 ? (
           <p className="text-muted text-center py-10">
@@ -275,8 +301,8 @@ export default function RecipeBrowser({
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            {filtered.map((item) => (
-              <Card key={`${item.kind}-${item.id}`} item={item} />
+            {filtered.map((item, i) => (
+              <Card key={`${item.kind}-${item.id}`} item={item} index={i} />
             ))}
           </div>
         )
@@ -290,8 +316,8 @@ export default function RecipeBrowser({
                   {letter}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {groups.get(letter)!.map((item) => (
-                    <Card key={`${item.kind}-${item.id}`} item={item} />
+                  {groups.get(letter)!.map((item, i) => (
+                    <Card key={`${item.kind}-${item.id}`} item={item} index={i} />
                   ))}
                 </div>
               </section>

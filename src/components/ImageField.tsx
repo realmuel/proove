@@ -105,7 +105,7 @@ export default function ImageField({
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
-            className="relative h-56 rounded-xl overflow-hidden border touch-none cursor-grab active:cursor-grabbing"
+            className="relative h-72 rounded-xl overflow-hidden border touch-none cursor-grab active:cursor-grabbing"
           >
             <img
               src={imagePath}
@@ -140,7 +140,7 @@ export default function ImageField({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="flex flex-col items-center justify-center gap-2 border border-dashed rounded-xl py-8 text-muted disabled:opacity-50"
+          className="flex flex-col items-center justify-center gap-2 border border-dashed rounded-xl h-72 text-muted disabled:opacity-50"
         >
           <UploadIcon size={26} />
           <span className="text-sm font-medium">

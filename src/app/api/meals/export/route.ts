@@ -43,14 +43,39 @@ export async function GET(req: Request) {
 
   // Embed full recipe data so the .meal file is portable to another instance.
   // Each embedded recipe gets a stable key the timeline can reference.
-  const recipePayloads: { key: string; recipe: unknown }[] = [];
-  const keyByRecipeId = new Map<string, string>();
+  //
+  // Bundle every recipe the meal links to: the attached recipes *and* any
+  // recipe a timeline step points at, even if it isn't in the attached list.
+  // Dedupe by id, preserving attached order first, then timeline order.
+  const linkedIds: string[] = [];
+  const seen = new Set<string>();
   for (const mr of attached) {
-    const payload = await buildRecipePayload(mr.recipeId);
+    if (!seen.has(mr.recipeId)) {
+      seen.add(mr.recipeId);
+      linkedIds.push(mr.recipeId);
+    }
+  }
+  for (const t of timeline) {
+    if (t.recipeId && !seen.has(t.recipeId)) {
+      seen.add(t.recipeId);
+      linkedIds.push(t.recipeId);
+    }
+  }
+
+  const attachedIds = new Set(attached.map((mr) => mr.recipeId));
+  const recipePayloads: { key: string; recipe: unknown; attached: boolean }[] =
+    [];
+  const keyByRecipeId = new Map<string, string>();
+  for (const recipeId of linkedIds) {
+    const payload = await buildRecipePayload(recipeId);
     if (!payload) continue;
     const key = `r${recipePayloads.length}`;
-    keyByRecipeId.set(mr.recipeId, key);
-    recipePayloads.push({ key, recipe: payload });
+    keyByRecipeId.set(recipeId, key);
+    recipePayloads.push({
+      key,
+      recipe: payload,
+      attached: attachedIds.has(recipeId),
+    });
   }
 
   // Embed the meal image too.

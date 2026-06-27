@@ -23,11 +23,16 @@ export async function POST(req: Request) {
   const now = new Date();
 
   // Recreate each embedded recipe, mapping its export key to the new id.
+  // Track which ones were genuinely attached to the meal (vs. only referenced
+  // by a timeline step) so we re-attach exactly the original set. Older files
+  // predate the `attached` flag — treat those entries as attached.
   const idByKey = new Map<string, string>();
+  const attachedIds: string[] = [];
   for (const entry of m.recipes ?? []) {
     if (!entry?.recipe?.title) continue;
     const newId = await createRecipeFromPayload(entry.recipe, m.createdBy ?? "Imported");
     if (entry.key) idByKey.set(entry.key, newId);
+    if (entry.attached !== false) attachedIds.push(newId);
   }
 
   const imagePath = await saveEmbeddedImage(m.image);
@@ -48,8 +53,9 @@ export async function POST(req: Request) {
     })
     .run();
 
-  // attach the recreated recipes in order
-  [...idByKey.values()].forEach((recipeId, i) => {
+  // attach the recreated recipes in order (timeline-only recipes stay linked
+  // through the timeline below, but aren't added to the attached list)
+  attachedIds.forEach((recipeId, i) => {
     db.insert(mealRecipes)
       .values({ id: uuid(), mealId, recipeId, order: i })
       .run();

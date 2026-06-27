@@ -117,6 +117,11 @@ export default function RecipeClient({
 
   const scale = servings / recipe.servings;
 
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  const ingredients = [...recipe.ingredients].sort(byName);
+  const sortedTools = recipe.tools ? [...recipe.tools].sort(byName) : [];
+
   const times = [
     ["Prep", recipe.prepTime],
     ["Cook", recipe.cookTime],
@@ -149,13 +154,28 @@ export default function RecipeClient({
     notify("Entry removed");
   }
 
+  // The "By … · Created …" credit. On wide screens it closes the left details
+  // column; on mobile it drops to the very bottom of the page (after method
+  // and history). Rendered in both slots, shown one at a time per breakpoint.
+  const metaLine = (
+    <>
+      {recipe.createdBy && <>By {recipe.createdBy} </>}
+      {recipe.emoji && <>{recipe.emoji} </>}
+      {(recipe.createdBy || recipe.emoji) && <>· </>}
+      Created {fmtDate(recipe.createdAt)}
+      {recipe.updatedAt !== recipe.createdAt && (
+        <> · Updated {fmtDate(recipe.updatedAt)}</>
+      )}
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Action bar */}
-      <div className="flex items-center justify-between">
+      {/* Action bar — sticky, stays put while you scroll the recipe */}
+      <div className="topbar flex items-center justify-between">
         <Link
           href={backHref}
-          className="icon-btn"
+          className="icon-btn icon-btn-float"
           aria-label={backHref === "/" ? "Back to recipes" : "Back to meal"}
         >
           <BackIcon size={20} />
@@ -164,7 +184,7 @@ export default function RecipeClient({
           <div className="relative" ref={exportRef}>
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn icon-btn-float"
               aria-label="Export recipe"
               aria-haspopup="menu"
               aria-expanded={exportOpen}
@@ -198,7 +218,7 @@ export default function RecipeClient({
           </div>
           <Link
             href={`/recipe/${id}/edit`}
-            className="icon-btn"
+            className="icon-btn icon-btn-float"
             aria-label="Edit recipe"
           >
             <EditIcon size={18} />
@@ -206,9 +226,9 @@ export default function RecipeClient({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 lg:items-start">
-        {/* Left: recipe details — sticky on large screens */}
-        <div className="flex flex-col gap-6 min-w-0 lg:sticky lg:top-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 lg:items-start animate-rise">
+        {/* Left: recipe details */}
+        <div className="flex flex-col gap-6 min-w-0">
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl leading-tight">{recipe.title}</h1>
         {recipe.description && (
@@ -269,7 +289,7 @@ export default function RecipeClient({
       <section>
         <h2 className="text-xl mb-2">Ingredients</h2>
         <ul className="flex flex-col gap-0.5">
-          {recipe.ingredients.map((ing: any) => {
+          {ingredients.map((ing: any) => {
             const on = checked.has(ing.id);
             return (
               <li key={ing.id}>
@@ -313,11 +333,11 @@ export default function RecipeClient({
         </ul>
       </section>
 
-      {recipe.tools?.length > 0 && (
+      {sortedTools.length > 0 && (
         <section>
           <h2 className="text-xl mb-2">Tools</h2>
           <ul className="flex flex-wrap gap-2 text-sm">
-            {recipe.tools.map((tool: any) => (
+            {sortedTools.map((tool: any) => (
               <li key={tool.id} className="border rounded-full px-3 py-1">
                 {tool.name}
               </li>
@@ -326,14 +346,9 @@ export default function RecipeClient({
         </section>
       )}
 
-      <p className="text-xs text-muted border-t pt-4">
-        {recipe.createdBy && <>By {recipe.createdBy} </>}
-        {recipe.emoji && <>{recipe.emoji} </>}
-        {(recipe.createdBy || recipe.emoji) && <>· </>}
-        Created {fmtDate(recipe.createdAt)}
-        {recipe.updatedAt !== recipe.createdAt && (
-          <> · Updated {fmtDate(recipe.updatedAt)}</>
-        )}
+      {/* wide screens: credit closes the left column */}
+      <p className="hidden lg:block text-xs text-muted border-t pt-4">
+        {metaLine}
       </p>
         </div>
 
@@ -410,6 +425,9 @@ export default function RecipeClient({
       </section>
         </div>
       </div>
+
+      {/* mobile: credit sits at the very bottom of the page */}
+      <p className="lg:hidden text-xs text-muted border-t pt-4">{metaLine}</p>
     </div>
   );
 }

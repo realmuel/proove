@@ -43,10 +43,22 @@
 
 @layer base {
   body {
-    background: var(--background);
+    /* Warm cream paper, with a faint printed-grain texture laid over the top.
+       The SVG is desaturated fractal noise; soft-light blends it gently into
+       the cream so the colour stays put — it just stops feeling flat. */
+    background-color: var(--background);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.6'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    background-blend-mode: soft-light;
     color: var(--foreground);
     font-family: var(--font-redaction), Georgia, serif;
     -webkit-tap-highlight-color: transparent;
+  }
+  @media (prefers-color-scheme: dark) {
+    /* On the dark paper the same grain reads best a touch quieter. */
+    body {
+      background-blend-mode: overlay;
+    }
   }
 
   /* Degraded Redaction cuts for a printed recipe-book feel */
@@ -115,6 +127,17 @@
     @apply inline-flex items-center justify-center h-9 w-9 rounded-full
            border bg-surface text-foreground transition active:scale-[0.95];
   }
+  /* Translucent variant for the sticky top-bar icons: lets content show through
+     (with a soft blur) as you scroll past, without a full-width banner. */
+  .icon-btn-float {
+    @apply bg-surface/65 backdrop-blur-sm;
+  }
+
+  /* Sticky top action bar — just keeps the icon row pinned near the top while
+     you scroll. No banner: the icons themselves carry the translucency. */
+  .topbar {
+    @apply sticky top-2 z-30;
+  }
 }
 
 * {
@@ -164,4 +187,44 @@
 }
 .node-pulse {
   animation: node-pulse 1.8s ease-out infinite;
+}
+
+/* ---------------- Entrance motion ----------------
+   Restrained and traditional: things settle in from just below, never bounce.
+   Used for cards and page sections on first paint; stagger via inline delay. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-rise {
+  animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.animate-fade {
+  animation: fade 0.5s ease-out both;
+}
+
+/* Honour reduced-motion everywhere: drop the travel, keep things instant. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-fade,
+  .animate-pop-in {
+    animation: none;
+  }
+  .node-pulse {
+    animation: none;
+  }
 }

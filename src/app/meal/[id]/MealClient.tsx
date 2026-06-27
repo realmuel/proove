@@ -223,11 +223,15 @@ export default function MealClient({ id }: { id: string }) {
   const etaMs = eta ? eta.getTime() - now : null;
   const nextMs = nextAction?.at ? nextAction.at.getTime() - now : null;
 
+  const sortedRecipes = [...meal.recipes].sort((a, b) =>
+    a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+  );
+
   const recipesSection = hasRecipes ? (
     <section>
       <h2 className="text-xl mb-2">Recipes</h2>
       <div className="grid grid-cols-1 gap-2.5">
-        {meal.recipes.map((r) =>
+        {sortedRecipes.map((r) =>
           r.missing ? (
             <div
               key={r.id}
@@ -358,16 +362,16 @@ export default function MealClient({ id }: { id: string }) {
     <div className="flex flex-col gap-6">
       {celebrate && <Celebration onDone={() => setCelebrate(false)} />}
 
-      {/* Action bar */}
-      <div className="flex items-center justify-between">
-        <Link href="/" className="icon-btn" aria-label="Back to home">
+      {/* Action bar — sticky, stays put while you scroll the meal */}
+      <div className="topbar flex items-center justify-between">
+        <Link href="/" className="icon-btn icon-btn-float" aria-label="Back to home">
           <BackIcon size={20} />
         </Link>
         <div className="flex items-center gap-2">
           <div className="relative" ref={exportRef}>
             <button
               type="button"
-              className="icon-btn"
+              className="icon-btn icon-btn-float"
               aria-label="Export meal"
               aria-haspopup="menu"
               aria-expanded={exportOpen}
@@ -391,14 +395,14 @@ export default function MealClient({ id }: { id: string }) {
               </div>
             )}
           </div>
-          <Link href={`/meal/${id}/edit`} className="icon-btn" aria-label="Edit meal">
+          <Link href={`/meal/${id}/edit`} className="icon-btn icon-btn-float" aria-label="Edit meal">
             <EditIcon size={18} />
           </Link>
         </div>
       </div>
 
       {/* Header */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 animate-rise">
         <h1 className="text-3xl leading-tight">{meal.name}</h1>
         {meal.description && <p className="text-muted">{meal.description}</p>}
       </div>
@@ -409,6 +413,15 @@ export default function MealClient({ id }: { id: string }) {
           style={{ objectPosition: meal.imagePos || "50% 50%" }}
           className="w-full h-72 object-cover rounded-xl"
         />
+      )}
+
+      {/* Prep time pill sits just below the image */}
+      {meal.prepTime != null && (
+        <div className="flex flex-wrap gap-2 text-sm text-muted">
+          <span className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1">
+            <ClockIcon size={14} /> Prep {formatDuration(meal.prepTime)}
+          </span>
+        </div>
       )}
 
       {/* Countdowns */}
@@ -465,7 +478,7 @@ export default function MealClient({ id }: { id: string }) {
       {/* Start / stop / reset */}
       {(eta || sorted.length > 0) && (
         <div className="flex items-center gap-2">
-          {running ? (
+          {running && !allDone ? (
             <button
               type="button"
               onClick={() => runAction("stop")}
@@ -491,14 +504,6 @@ export default function MealClient({ id }: { id: string }) {
           >
             <ResetIcon size={15} /> Reset
           </button>
-        </div>
-      )}
-
-      {meal.prepTime != null && (
-        <div className="flex flex-wrap gap-2 text-sm text-muted">
-          <span className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1">
-            <ClockIcon size={14} /> Prep {formatDuration(meal.prepTime)}
-          </span>
         </div>
       )}
 

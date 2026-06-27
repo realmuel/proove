@@ -30,6 +30,13 @@ function ensureFonts() {
     family: "Redaction35",
     src: path.join(fontDir, "Redaction35-Regular.otf"),
   });
+  // Redaction has no emoji glyphs, so render any emoji (e.g. in the byline) as
+  // Twemoji images. Fetched lazily at render time; if it's unreachable the
+  // emoji is silently dropped and the rest of the PDF still renders.
+  Font.registerEmojiSource({
+    format: "png",
+    url: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/",
+  });
   // wrap normally at spaces, but break very long unbroken words so they
   // don't run off the page
   Font.registerHyphenationCallback((word) =>
@@ -117,6 +124,7 @@ export type PdfRecipe = {
   description?: string | null;
   servings: number;
   createdBy?: string | null;
+  emoji?: string | null;
   ovenTemp?: number | null;
   prepTime?: number | null;
   cookTime?: number | null;
@@ -144,6 +152,11 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
   ).filter(([, v]) => v != null) as [string, number][];
 
   const steps = r.steps.slice().sort((a, b) => a.order - b.order);
+  // ingredients and tools read alphabetically, matching the web view
+  const byName = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  const ingredients = r.ingredients.slice().sort(byName);
+  const tools = r.tools.slice().sort(byName);
   const sharedOn = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
@@ -158,29 +171,27 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
 
         {r.imageAbsPath ? <Image src={r.imageAbsPath} style={s.image} /> : null}
 
-        {(times.length > 0 || r.ovenTemp != null) && (
-          <View style={s.chipRow}>
-            {times.map(([label, v]) => (
-              <View key={label} style={s.chip}>
-                <Text style={s.chipText}>
-                  {label} {v}m
-                </Text>
-              </View>
-            ))}
-            {r.ovenTemp != null && (
-              <View style={s.chip}>
-                <Text style={s.chipText}>{r.ovenTemp}°C</Text>
-              </View>
-            )}
-            <View style={s.chip}>
-              <Text style={s.chipText}>Serves {r.servings}</Text>
+        <View style={s.chipRow}>
+          {times.map(([label, v]) => (
+            <View key={label} style={s.chip}>
+              <Text style={s.chipText}>
+                {label} {v}m
+              </Text>
             </View>
+          ))}
+          {r.ovenTemp != null && (
+            <View style={s.chip}>
+              <Text style={s.chipText}>{r.ovenTemp}°C</Text>
+            </View>
+          )}
+          <View style={s.chip}>
+            <Text style={s.chipText}>Serves {r.servings}</Text>
           </View>
-        )}
+        </View>
 
         <View style={s.section}>
           <Text style={s.h2}>Ingredients</Text>
-          {r.ingredients.map((ing, i) => (
+          {ingredients.map((ing, i) => (
             <View key={i} style={s.ingRow}>
               <Text style={s.ingQty}>
                 {fmt(ing.amount)} {ing.unit}
@@ -190,11 +201,11 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
           ))}
         </View>
 
-        {r.tools.length > 0 && (
+        {tools.length > 0 && (
           <View style={s.section}>
             <Text style={s.h2}>Tools</Text>
             <View style={s.toolRow}>
-              {r.tools.map((t, i) => (
+              {tools.map((t, i) => (
                 <View key={i} style={s.tool}>
                   <Text style={s.toolText}>{t.name}</Text>
                 </View>
@@ -214,7 +225,10 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
         </View>
 
         <Text style={s.footer}>
-          {r.createdBy ? `By ${r.createdBy} · ` : ""}
+          {[r.createdBy ? `By ${r.createdBy}` : "", r.emoji || ""]
+            .filter(Boolean)
+            .join(" ")}
+          {(r.createdBy || r.emoji) && " · "}
           Shared {sharedOn}
         </Text>
       </Page>

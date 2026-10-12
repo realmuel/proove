@@ -15,7 +15,7 @@ const MIME: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-export type RecipePayload = {
+type RecipePayload = {
   title: string;
   description: string | null;
   servings: number;

@@ -12,7 +12,7 @@ import ImageField, { DEFAULT_IMAGE_POS } from "@/components/ImageField";
 import { BackIcon, CheckIcon } from "@/components/icons";
 
 /* Metric units plus the spoon measures requested. */
-export const UNITS = [
+const UNITS = [
   "g",
   "kg",
   "ml",

@@ -16,7 +16,7 @@ import {
   TrashIcon,
 } from "@/components/icons";
 
-export type MealTimelineItem = {
+type MealTimelineItem = {
   time: string; // "HH:MM"
   content: string;
   recipeId: string | null;

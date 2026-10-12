@@ -1,7 +1,6 @@
 services:
   proove:
-    build: realmuel/proove:latest
-    image: proove
+    image: ghcr.io/realmuel/proove:latest
     container_name: proove
     restart: unless-stopped
     user: "1000:1000"

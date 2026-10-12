@@ -3,27 +3,15 @@ import localFont from "next/font/local";
 import "./globals.css";
 import ToastProvider from "@/components/Toast";
 
-/* Redaction — base for body text */
-const redaction = localFont({
+/* Michelangelus — used for all text */
+const michelangelus = localFont({
   src: [
-    { path: "./fonts/Redaction-Regular.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/Redaction-Bold.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/Michelangelus-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/Michelangelus-Italic.ttf", weight: "400", style: "italic" },
+    { path: "./fonts/Michelangelus-Bold.ttf", weight: "700", style: "normal" },
+    { path: "./fonts/Michelangelus-BoldItalic.ttf", weight: "700", style: "italic" },
   ],
-  variable: "--font-redaction",
-  display: "swap",
-});
-
-/* Redaction 20 — lightly degraded, for section headings */
-const redaction20 = localFont({
-  src: "./fonts/Redaction_20-Regular.woff2",
-  variable: "--font-redaction-20",
-  display: "swap",
-});
-
-/* Redaction 35 — more degraded, for large titles (letterpress feel) */
-const redaction35 = localFont({
-  src: "./fonts/Redaction_35-Regular.woff2",
-  variable: "--font-redaction-35",
+  variable: "--font-michelangelus",
   display: "swap",
 });
 
@@ -52,7 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${redaction.variable} ${redaction20.variable} ${redaction35.variable}`}
+      className={`${michelangelus.variable}`}
     >
       <body>
         <ToastProvider>

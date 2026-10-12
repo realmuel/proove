@@ -74,7 +74,7 @@ const NICE_FRACTIONS: [number, number][] = [
 /* Render a stored decimal as a friendly quantity: 1.25 -> "1 1/4",
    0.5 -> "1/2", 0.666… -> "2/3". Values that don't land near a common
    fraction fall back to a trimmed decimal so nothing is misrepresented. */
-export function formatQuantity(n: number | null | undefined): string {
+function formatQuantity(n: number | null | undefined): string {
   if (n == null || isNaN(n)) return "";
   if (n < 0) return trimDecimal(n);
 
@@ -128,4 +128,26 @@ export function formatDuration(minutes: number | null | undefined): string {
   if (h === 0) return `${m}m`;
   if (m === 0) return `${h}h`;
   return `${h}h ${m}m`;
+}
+
+/* ---------------- Dates ----------------
+   Dates render on the server and again in the browser; both must produce the
+   same text or React hydration fails. So pin locale + timezone rather than
+   using whatever each machine defaults to (the Docker server runs UTC/en-US). */
+// ponytail: single-user app, hardcoded zone — make it a setting if others use it
+const LOCALE = "en-GB";
+const TIME_ZONE = "Europe/London";
+
+export function formatDate(
+  value: string | number | Date,
+  opts: Intl.DateTimeFormatOptions
+): string {
+  return new Date(value).toLocaleString(LOCALE, { timeZone: TIME_ZONE, ...opts });
+}
+
+/* Whole calendar days between two instants, counted in TIME_ZONE. */
+export function daysBetween(from: string | number | Date, to: string | number | Date): number {
+  const day = (v: string | number | Date) =>
+    Date.parse(new Date(v).toLocaleDateString("en-CA", { timeZone: TIME_ZONE }));
+  return Math.round((day(to) - day(from)) / 86400000);
 }

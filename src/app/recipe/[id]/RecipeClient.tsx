@@ -7,7 +7,7 @@ import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
 import { shareOrDownloadFile } from "@/lib/share";
-import { formatDuration, formatAmount } from "@/lib/format";
+import { formatDuration, formatAmount, formatDate } from "@/lib/format";
 import SmartImage from "@/components/SmartImage";
 import { RecipeSkeleton } from "@/components/Skeletons";
 import {
@@ -22,7 +22,7 @@ type Recipe = any;
 type CookLog = { id: string; cookedAt: string; notes: string | null };
 
 function fmtDate(ms: number | string) {
-  return new Date(ms).toLocaleDateString(undefined, {
+  return formatDate(ms, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -30,7 +30,7 @@ function fmtDate(ms: number | string) {
 }
 
 function fmtLogDate(ms: number | string) {
-  return new Date(ms).toLocaleString(undefined, {
+  return formatDate(ms, {
     month: "short",
     day: "numeric",
     year: "numeric",

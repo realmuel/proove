@@ -38,7 +38,7 @@
   --color-danger: var(--danger);
   --color-danger-fg: var(--danger-fg);
 
-  --font-sans: var(--font-redaction);
+  --font-sans: var(--font-michelangelus);
 }
 
 @layer base {
@@ -51,7 +51,7 @@
     background-attachment: fixed;
     background-blend-mode: soft-light;
     color: var(--foreground);
-    font-family: var(--font-redaction), Georgia, serif;
+    font-family: var(--font-michelangelus), Georgia, serif;
     -webkit-tap-highlight-color: transparent;
   }
   @media (prefers-color-scheme: dark) {
@@ -61,15 +61,9 @@
     }
   }
 
-  /* Degraded Redaction cuts for a printed recipe-book feel */
-  h1 {
-    font-family: var(--font-redaction-35), Georgia, serif;
-    font-weight: 400;
-    letter-spacing: 0.005em;
-  }
+  h1,
   h2,
   h3 {
-    font-family: var(--font-redaction-20), Georgia, serif;
     font-weight: 400;
   }
 

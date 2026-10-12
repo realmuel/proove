@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate, daysBetween } from "@/lib/format";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,19 +31,15 @@ function letterOf(title: string) {
 }
 
 function relativeDay(ms: number) {
-  const then = new Date(ms);
-  const today = new Date();
-  const startOf = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const days = Math.round((startOf(today) - startOf(then)) / 86400000);
+  const days = daysBetween(ms, Date.now());
   if (days <= 0) return "today";
   if (days === 1) return "yesterday";
   if (days < 7) return `${days} days ago`;
-  return then.toLocaleDateString(undefined, {
+  const sameYear = formatDate(ms, { year: "numeric" }) === formatDate(Date.now(), { year: "numeric" });
+  return formatDate(ms, {
     month: "short",
     day: "numeric",
-    year:
-      then.getFullYear() === today.getFullYear() ? undefined : "numeric",
+    year: sameYear ? undefined : "numeric",
   });
 }
 
@@ -80,7 +77,7 @@ function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
           </div>
         )}
       </div>
-      <span className="absolute top-2 right-2 shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+      <span className="absolute top-2 right-2 shrink-0 px-2 py-0.5 text-xs italic text-muted">
         {isMeal ? "Meal" : "Recipe"}
       </span>
     </Link>

@@ -7,7 +7,7 @@ import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
 import { shareOrDownloadFile } from "@/lib/share";
-import { formatDuration } from "@/lib/format";
+import { formatDuration, formatDate } from "@/lib/format";
 import Celebration from "@/components/Celebration";
 import SmartImage from "@/components/SmartImage";
 import { MealSkeleton } from "@/components/Skeletons";
@@ -84,7 +84,7 @@ function countdown(ms: number): string {
 }
 
 function fmtDate(value: string | number) {
-  return new Date(value).toLocaleDateString(undefined, {
+  return formatDate(value, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -92,7 +92,7 @@ function fmtDate(value: string | number) {
 }
 
 function fmtClock(value: string | number) {
-  return new Date(value).toLocaleString(undefined, {
+  return formatDate(value, {
     weekday: "short",
     hour: "numeric",
     minute: "2-digit",

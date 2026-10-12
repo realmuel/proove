@@ -9,29 +9,23 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import { formatAmount } from "@/lib/format";
+import { formatAmount, formatDate } from "@/lib/format";
 
-/* ---- register Redaction (OTF) once ---- */
+/* ---- register fonts once ---- */
 const fontDir = path.join(process.cwd(), "src/lib/pdf-fonts");
 let registered = false;
 function ensureFonts() {
   if (registered) return;
   Font.register({
-    family: "Redaction",
+    family: "Michelangelus",
     fonts: [
-      { src: path.join(fontDir, "Redaction-Regular.otf"), fontWeight: 400 },
-      { src: path.join(fontDir, "Redaction-Bold.otf"), fontWeight: 700 },
+      { src: path.join(fontDir, "Michelangelus-Regular.ttf"), fontWeight: 400 },
+      { src: path.join(fontDir, "Michelangelus-Italic.ttf"), fontWeight: 400, fontStyle: "italic" },
+      { src: path.join(fontDir, "Michelangelus-Bold.ttf"), fontWeight: 700 },
+      { src: path.join(fontDir, "Michelangelus-BoldItalic.ttf"), fontWeight: 700, fontStyle: "italic" },
     ],
   });
-  Font.register({
-    family: "Redaction20",
-    src: path.join(fontDir, "Redaction20-Regular.otf"),
-  });
-  Font.register({
-    family: "Redaction35",
-    src: path.join(fontDir, "Redaction35-Regular.otf"),
-  });
-  // Redaction has no emoji glyphs, so render any emoji (e.g. in the byline) as
+  // Michelangelus has no emoji glyphs, so render any emoji (e.g. in the byline) as
   // Apple-style images. Fetched lazily at render time; if it's unreachable the
   // emoji is silently dropped and the rest of the PDF still renders.
   Font.registerEmojiSource({
@@ -60,12 +54,12 @@ const s = StyleSheet.create({
   page: {
     backgroundColor: C.paper,
     color: C.ink,
-    fontFamily: "Redaction",
+    fontFamily: "Michelangelus",
     fontSize: 11,
     padding: 44,
     lineHeight: 1.4,
   },
-  title: { fontFamily: "Redaction35", fontSize: 28, lineHeight: 1.25 },
+  title: { fontFamily: "Michelangelus", fontSize: 28, lineHeight: 1.25 },
   desc: { color: C.muted, marginTop: 6, fontSize: 12 },
   image: {
     width: "100%",
@@ -86,7 +80,7 @@ const s = StyleSheet.create({
   },
   chipText: { color: C.muted, fontSize: 10, lineHeight: 1 },
   h2: {
-    fontFamily: "Redaction20",
+    fontFamily: "Michelangelus",
     fontSize: 16,
     marginBottom: 7,
   },
@@ -117,7 +111,7 @@ const s = StyleSheet.create({
 });
 
 
-export type PdfRecipe = {
+type PdfRecipe = {
   title: string;
   description?: string | null;
   servings: number;
@@ -155,7 +149,7 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
     a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   const ingredients = r.ingredients.slice().sort(byName);
   const tools = r.tools.slice().sort(byName);
-  const sharedOn = new Date().toLocaleDateString("en-GB", {
+  const sharedOn = formatDate(Date.now(), {
     day: "numeric",
     month: "short",
     year: "numeric",

@@ -191,7 +191,7 @@ export default function RecipeBrowser({
           <input
             ref={importRef}
             type="file"
-            accept=".recipe,.meal,application/json"
+            accept=".recipe,.meal,.json,.txt,application/json,text/plain"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

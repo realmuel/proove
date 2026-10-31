@@ -7,5 +7,5 @@ services:
     ports:
       - "3103:3103"
     volumes:
-      - /apps/home/proove/data:/app/data
-      - /apps/home/proove/uploads:/app/public/uploads
+      - ./data:/app/data
+      - ./uploads:/app/public/uploads

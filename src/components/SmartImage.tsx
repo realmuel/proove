@@ -38,6 +38,8 @@ export default function SmartImage({
   // Reconcile with the real element state (covers an image that finished
   // loading before React attached onLoad, e.g. from cache).
   useEffect(() => {
+    // Intentional: syncs React state with the DOM element's real load state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFailed(false);
     const img = ref.current;
     setLoaded(!!(img && img.complete && img.naturalWidth > 0));
@@ -70,6 +72,7 @@ export default function SmartImage({
           loaded ? "" : "bg-accent/10 animate-pulse"
         }`}
       />
+      {/* eslint-disable-next-line @next/next/no-img-element -- runtime uploads, served by /uploads route */}
       <img
         key={url}
         ref={ref}

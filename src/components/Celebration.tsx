@@ -12,18 +12,18 @@ export default function Celebration({ onDone }: { onDone: () => void }) {
     return () => clearTimeout(t);
   }, [onDone]);
 
-  const pieces = useMemo(
-    () =>
-      Array.from({ length: 80 }, (_, i) => ({
-        left: Math.random() * 100,
-        delay: Math.random() * 0.8,
-        duration: 2.4 + Math.random() * 1.8,
-        size: 6 + Math.random() * 8,
-        color: COLORS[i % COLORS.length],
-        round: Math.random() > 0.5,
-      })),
-    []
-  );
+  // Deterministic pseudo-random spread (golden-ratio hashing): render stays pure.
+  const pieces = useMemo(() => {
+    const r = (i: number, k: number) => ((i + 1) * 0.618033988749 * k) % 1;
+    return Array.from({ length: 80 }, (_, i) => ({
+      left: r(i, 1) * 100,
+      delay: r(i, 7) * 0.8,
+      duration: 2.4 + r(i, 13) * 1.8,
+      size: 6 + r(i, 19) * 8,
+      color: COLORS[i % COLORS.length],
+      round: r(i, 23) > 0.5,
+    }));
+  }, []);
 
   return (
     <div

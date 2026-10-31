@@ -6,12 +6,12 @@ loud. When in doubt, make it quieter and warmer.
 
 ## Typography
 
-Everything is set in **Redaction** (a serif with progressively "degraded"
+Everything is set in **Michelangelus** (a serif with progressively "degraded"
 letterpress cuts), falling back to Georgia / serif.
 
 | Use | Family (CSS var) | Notes |
 |---|---|---|
-| Body text | `--font-redaction` (Redaction, 400/700) | Default everywhere |
+| Body text | `--font-redaction` (Michelangelus, 400/700) | Default everywhere |
 | Section headings `h2`, `h3` | `--font-redaction-20` | Lightly degraded cut |
 | Large titles `h1` | `--font-redaction-35` | More degraded, letterpress feel |
 

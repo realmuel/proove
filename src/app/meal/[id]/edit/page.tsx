@@ -39,9 +39,9 @@ export default function EditMealPage({
           etaAt: data.etaAt ? toLocalInput(data.etaAt) : "",
           version: data.version ?? 1,
           recipes:
-            data.recipes?.map((r: any) => ({ recipeId: r.recipeId })) ?? [],
+            data.recipes?.map((r: MealFormData["recipes"][number]) => ({ recipeId: r.recipeId })) ?? [],
           timeline:
-            data.timeline?.map((t: any) => ({
+            data.timeline?.map((t: Partial<MealFormData["timeline"][number]>) => ({
               time: t.time ?? "",
               content: t.content ?? "",
               recipeId: t.recipeId ?? null,
@@ -51,7 +51,7 @@ export default function EditMealPage({
 
     fetch(`/api/recipes`)
       .then((r) => r.json())
-      .then((list: any[]) =>
+      .then((list: { id: string; title: string }[]) =>
         setAvailable(
           list
             .map((r) => ({ id: r.id, title: r.title }))

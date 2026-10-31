@@ -23,7 +23,9 @@ export function useRecordEvents(
   onChange: (event: RecordEvent) => void
 ) {
   const cb = useRef(onChange);
-  cb.current = onChange;
+  useEffect(() => {
+    cb.current = onChange;
+  });
 
   useEffect(() => {
     if (!channel) return;

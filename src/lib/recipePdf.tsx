@@ -12,7 +12,7 @@ import {
 import { formatAmount, formatDate } from "@/lib/format";
 
 /* ---- register fonts once ---- */
-const fontDir = path.join(process.cwd(), "src/lib/pdf-fonts");
+const fontDir = path.join(process.cwd(), "src/app/fonts");
 let registered = false;
 function ensureFonts() {
   if (registered) return;
@@ -161,6 +161,7 @@ export async function renderRecipePdf(r: PdfRecipe): Promise<Buffer> {
         <Text style={s.title}>{r.title}</Text>
         {r.description ? <Text style={s.desc}>{r.description}</Text> : null}
 
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt prop */}
         {r.imageAbsPath ? <Image src={r.imageAbsPath} style={s.image} /> : null}
 
         <View style={s.chipRow}>

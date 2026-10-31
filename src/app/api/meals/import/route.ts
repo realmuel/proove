@@ -7,8 +7,28 @@ import { createRecipeFromPayload, saveEmbeddedImage } from "@/lib/recipeIO";
 import { randomEmoji } from "@/lib/emoji";
 import { publish } from "@/lib/events";
 
+type RecipeFile = Parameters<typeof createRecipeFromPayload>[0];
+
+type MealFile = {
+  name: string;
+  description?: string | null;
+  emoji?: string | null;
+  imagePos?: string | null;
+  prepTime?: number | null;
+  etaAt?: string | null;
+  createdBy?: string;
+  image?: { filename?: string; dataUrl?: string } | null;
+  recipes?: { key?: string; attached?: boolean; recipe?: RecipeFile }[];
+  timeline?: {
+    time?: string;
+    content?: string;
+    recipeKey?: string;
+    done?: boolean;
+  }[];
+};
+
 export async function POST(req: Request) {
-  let parsed: any;
+  let parsed: { format?: string; meal?: MealFile };
   try {
     parsed = await req.json();
   } catch {
@@ -62,7 +82,7 @@ export async function POST(req: Request) {
       .run();
   });
 
-  (m.timeline ?? []).forEach((t: any, i: number) => {
+  (m.timeline ?? []).forEach((t, i) => {
     db.insert(mealTimeline)
       .values({
         id: uuid(),

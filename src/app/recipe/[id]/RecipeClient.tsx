@@ -18,7 +18,27 @@ import {
   DownloadIcon,
 } from "@/components/icons";
 
-type Recipe = any;
+type Recipe = {
+  id: string;
+  title: string;
+  description: string | null;
+  servings: number;
+  createdBy: string;
+  emoji: string | null;
+  ovenTemp: number | null;
+  prepTime: number | null;
+  cookTime: number | null;
+  chillTime: number | null;
+  coolTime: number | null;
+  proveTime: number | null;
+  imagePath: string | null;
+  imagePos: string | null;
+  createdAt: string;
+  updatedAt: string;
+  ingredients: { id: string; name: string; amount: number; unit: string }[];
+  steps: { id: string; order: number; content: string }[];
+  tools?: { id: string; name: string }[];
+};
 type CookLog = { id: string; cookedAt: string; notes: string | null };
 
 function fmtDate(ms: number | string) {
@@ -156,7 +176,7 @@ export default function RecipeClient({
   async function exportFile(url: string, ext: "recipe" | "pdf") {
     setExporting(ext);
     try {
-      await shareOrDownloadFile(url, `${recipe.title || "recipe"}.${ext}`);
+      await shareOrDownloadFile(url, `${recipe?.title || "recipe"}.${ext}`);
     } catch {
       notify("Could not export recipe", "error");
     } finally {
@@ -303,7 +323,7 @@ export default function RecipeClient({
       <section>
         <h2 className="text-xl mb-2">Ingredients</h2>
         <ul className="flex flex-col gap-0.5">
-          {ingredients.map((ing: any) => {
+          {ingredients.map((ing) => {
             const on = checked.has(ing.id);
             return (
               <li key={ing.id}>
@@ -312,7 +332,7 @@ export default function RecipeClient({
                   onClick={() =>
                     setChecked((prev) => {
                       const next = new Set(prev);
-                      next.has(ing.id) ? next.delete(ing.id) : next.add(ing.id);
+                      if (!next.delete(ing.id)) next.add(ing.id);
                       return next;
                     })
                   }
@@ -351,7 +371,7 @@ export default function RecipeClient({
         <section>
           <h2 className="text-xl mb-2">Tools</h2>
           <ul className="flex flex-wrap gap-2 text-sm">
-            {sortedTools.map((tool: any) => (
+            {sortedTools.map((tool) => (
               <li key={tool.id} className="border rounded-full px-3 py-1">
                 {tool.name}
               </li>
@@ -373,8 +393,8 @@ export default function RecipeClient({
         <ol className="flex flex-col gap-3">
           {recipe.steps
             .slice()
-            .sort((a: any, b: any) => a.order - b.order)
-            .map((step: any, i: number) => (
+            .sort((a, b) => a.order - b.order)
+            .map((step, i) => (
               <li key={step.id} className="flex gap-3">
                 <span className="text-accent shrink-0">{i + 1}</span>
                 <span className="min-w-0 break-words">{step.content}</span>

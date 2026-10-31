@@ -110,8 +110,10 @@ export default function ImageField({
             onPointerCancel={onPointerUp}
             className="relative h-72 rounded-xl overflow-hidden border touch-none cursor-grab active:cursor-grabbing"
           >
+            {/* eslint-disable-next-line @next/next/no-img-element -- runtime upload preview */}
             <img
               src={imagePath}
+              alt=""
               draggable={false}
               style={{ objectPosition: imagePos || DEFAULT_IMAGE_POS }}
               className="w-full h-full object-cover select-none pointer-events-none"

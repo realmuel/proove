@@ -49,4 +49,4 @@ sqlite.db-*
 !/public/uploads/.gitkeep
 
 # claude code local settings
-.claude/settings.local.json
+.claude/

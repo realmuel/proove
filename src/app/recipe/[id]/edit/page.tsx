@@ -32,17 +32,17 @@ export default function EditRecipePage({
           imagePath: data.imagePath ?? "",
           imagePos: data.imagePos ?? "50% 50%",
           ingredients:
-            data.ingredients?.map((i: any) => ({
+            data.ingredients?.map((i: RecipeFormData["ingredients"][number]) => ({
               name: i.name,
               amount: i.amount,
               unit: i.unit,
             })) ?? [],
-          tools: data.tools?.map((t: any) => ({ name: t.name })) ?? [],
+          tools: data.tools?.map((t: RecipeFormData["tools"][number]) => ({ name: t.name })) ?? [],
           steps:
             data.steps
               ?.slice()
-              .sort((a: any, b: any) => a.order - b.order)
-              .map((s: any) => ({ order: s.order, content: s.content })) ?? [],
+              .sort((a: RecipeFormData["steps"][number], b: RecipeFormData["steps"][number]) => a.order - b.order)
+              .map((s: RecipeFormData["steps"][number]) => ({ order: s.order, content: s.content })) ?? [],
         });
       });
   }, [id]);

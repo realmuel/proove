@@ -1,0 +1,12 @@
+name: Proove
+version: "0.1.0"
+slug: proove
+description: Recipe manager
+url: https://github.com/realmuel/proove
+arch: [aarch64, amd64]
+image: ghcr.io/realmuel/proove
+startup: application
+boot: auto
+ports:
+  3103/tcp: 3103
+webui: "http://[HOST]:[PORT:3103]"

@@ -51,4 +51,6 @@ RUN mkdir -p /app/data /app/public/uploads
 EXPOSE 3103
 
 # Create/upgrade the database (no-op if it already exists), then start Next.
-CMD ["sh", "-c", "node scripts/migrate.cjs && node node_modules/next/dist/bin/next start -p 3103 -H 0.0.0.0"]
+# Under Home Assistant the Supervisor mounts persistent storage at /data; if it
+# exists, keep the database and uploads there. Plain Docker never has /data.
+CMD ["sh", "-c", "if [ -d /data ]; then export DATABASE_PATH=/data/sqlite.db; mkdir -p /data/uploads; rm -rf /app/public/uploads; ln -s /data/uploads /app/public/uploads; fi; node scripts/migrate.cjs && exec node node_modules/next/dist/bin/next start -p 3103 -H 0.0.0.0"]

@@ -3,10 +3,9 @@ name: Docker
 on:
   push:
     branches: [main]
-    tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -14,6 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Version = 0.1.<run number>; written to the add-on config so HA sees an update.
+      - id: ver
+        run: |
+          v="0.1.${{ github.run_number }}"
+          sed -i "s/^version: .*/version: \"$v\"/" proove/config.yaml
+          echo "v=$v" >> "$GITHUB_OUTPUT"
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git commit -am "Release $v [skip ci]"
+          git push
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -28,7 +37,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
-            type=semver,pattern={{version}}
+            type=raw,value=${{ steps.ver.outputs.v }}
       - uses: docker/build-push-action@v6
         with:
           context: .

@@ -49,16 +49,16 @@ function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
     <Link
       href={isMeal ? `/meal/${item.id}` : `/recipe/${item.id}`}
       style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
-      className="animate-rise relative flex items-center gap-3.5 p-2.5 bg-surface border rounded-xl active:scale-[0.99] transition"
+      className="animate-rise relative flex items-center gap-3.5 p-2.5 bg-surface rounded-2xl active:scale-[0.99] transition"
     >
       {item.imagePath ? (
         <SmartImage
           src={item.imagePath}
-          wrapperClassName="w-16 h-16 rounded-lg shrink-0"
+          wrapperClassName="w-16 h-16 rounded-xl shrink-0"
           imgClassName="w-16 h-16 object-cover"
         />
       ) : (
-        <div className="w-16 h-16 rounded-lg bg-accent/10 border shrink-0 grid place-items-center select-none">
+        <div className="w-16 h-16 rounded-xl bg-accent/10 shrink-0 grid place-items-center select-none">
           <span className="text-3xl leading-none">{item.emoji || "🍽️"}</span>
         </div>
       )}
@@ -185,9 +185,30 @@ export default function RecipeBrowser({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <h1 className="text-5xl tracking-tight text-accent">Proove</h1>
-        <div className="flex items-center gap-2">
+      <header className="flex items-center gap-3">
+      <div className="relative flex-1 min-w-0">
+        <SearchIcon
+          size={18}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"
+        />
+        <input
+          className="border-0 rounded-full h-11 pl-11 pr-11 w-full"
+          placeholder="Search recipes…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onClick={() => setQuery("")}
+            className="absolute right-0 top-0 h-11 w-11 grid place-items-center text-muted text-sm"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+        <div className="flex items-center gap-2 shrink-0">
           <input
             ref={importRef}
             type="file"
@@ -246,29 +267,6 @@ export default function RecipeBrowser({
         </div>
       </header>
 
-      <div className="relative">
-        <SearchIcon
-          size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-        />
-        <input
-          className="border rounded-xl py-2.5 pl-10 pr-9 w-full"
-          placeholder="Search recipes, ingredients…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {query && (
-          <button
-            type="button"
-            aria-label="Clear search"
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted text-sm"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
       {items.length === 0 ? (
         <div className="animate-rise flex flex-col items-center text-center gap-4 py-16">
           <div className="h-20 w-20 rounded-2xl bg-accent/10 border grid place-items-center select-none">
@@ -316,7 +314,7 @@ export default function RecipeBrowser({
           <div className="flex-1 flex flex-col gap-7 min-w-0">
             {ALPHABET.filter((l) => groups.has(l)).map((letter) => (
               <section key={letter} id={`letter-${letter}`} className="scroll-mt-4">
-                <h2 className="text-sm text-muted mb-2 tracking-wider">
+                <h2 className="text-2xl text-accent mb-2">
                   {letter}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -355,11 +353,13 @@ export default function RecipeBrowser({
                 <button
                   key={letter}
                   data-letter={letter}
+                  aria-label={`Jump to ${letter}`}
+                  tabIndex={present ? 0 : -1}
                   onClick={() => jump(letter)}
-                  className={`w-5 h-[18px] flex items-center justify-center rounded ${
+                  className={`w-7 h-5 flex items-center justify-center rounded ${
                     present
                       ? "text-accent font-medium"
-                      : "text-muted/40 pointer-events-none"
+                      : "text-muted/50 pointer-events-none"
                   }`}
                 >
                   {letter}

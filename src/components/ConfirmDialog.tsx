@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 
 export default function ConfirmDialog({
   open,
@@ -21,33 +21,37 @@ export default function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  // Native <dialog> traps focus, restores it on close and handles Escape.
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-5"
-      onClick={onCancel}
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onCancel={(e) => {
+        e.preventDefault();
+        onCancel();
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+      className="m-auto w-[calc(100%-2.5rem)] max-w-sm bg-surface text-foreground border rounded-2xl p-5 shadow-lg backdrop:bg-black/40"
     >
-      <div className="absolute inset-0 bg-black/40" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-sm bg-surface border rounded-2xl p-5 flex flex-col gap-3 shadow-lg"
-      >
-        <h2 className="text-xl">{title}</h2>
+      <div className="flex flex-col gap-3">
+        <h2 id={titleId} className="text-xl">{title}</h2>
         {message && <p className="text-muted text-sm">{message}</p>}
         <div className="flex justify-end gap-2 mt-2">
-          <button onClick={onCancel} className="btn-ghost">
+          <button autoFocus onClick={onCancel} className="btn-ghost">
             {cancelLabel}
           </button>
           <button
@@ -58,6 +62,6 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

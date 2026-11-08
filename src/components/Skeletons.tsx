@@ -7,10 +7,10 @@ const bar = "rounded bg-accent/10 animate-pulse";
 function TopBarSkeleton() {
   return (
     <div className="flex items-center justify-between">
-      <div className={`h-9 w-9 rounded-full ${bar}`} />
+      <div className={`h-11 w-11 rounded-full ${bar}`} />
       <div className="flex items-center gap-2">
-        <div className={`h-9 w-9 rounded-full ${bar}`} />
-        <div className={`h-9 w-9 rounded-full ${bar}`} />
+        <div className={`h-11 w-11 rounded-full ${bar}`} />
+        <div className={`h-11 w-11 rounded-full ${bar}`} />
       </div>
     </div>
   );

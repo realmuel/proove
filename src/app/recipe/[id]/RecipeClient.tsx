@@ -201,9 +201,9 @@ export default function RecipeClient({
   );
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Action bar — sticky, stays put while you scroll the recipe */}
-      <div className="topbar flex items-center justify-between">
+    <div className="-m-5">
+      {/* Action bar — floats over the hero, stays put while you scroll */}
+      <div className="topbar mx-5 mt-5 -mb-14 flex items-center justify-between">
         <Link
           href={backHref}
           className="icon-btn icon-btn-float"
@@ -259,24 +259,33 @@ export default function RecipeClient({
         </div>
       </div>
 
+      {/* Hero stays pinned; the sheet below scrolls up over it */}
+      <div className="sticky top-0 h-[50vh] overflow-hidden bg-accent/10">
+        {recipe.imagePath ? (
+          <SmartImage
+            src={recipe.imagePath}
+            style={{ objectPosition: recipe.imagePos || "50% 50%" }}
+            wrapperClassName="w-full h-[50vh]"
+            imgClassName="w-full h-[50vh] object-cover"
+          />
+        ) : (
+          <div className="h-full grid place-items-center text-8xl select-none">
+            {recipe.emoji || "🍽️"}
+          </div>
+        )}
+      </div>
+
+      <div className="relative z-10 -mt-7 min-h-[60vh] rounded-t-3xl bg-background px-5 pt-3 pb-8 flex flex-col gap-6 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+      <div className="mx-auto h-1 w-10 rounded-full bg-muted/40" aria-hidden />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 lg:items-start animate-rise">
         {/* Left: recipe details */}
         <div className="flex flex-col gap-6 min-w-0">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl leading-tight">{recipe.title}</h1>
+        <h1 className="text-4xl leading-tight text-accent">{recipe.title}</h1>
         {recipe.description && (
           <p className="text-muted">{recipe.description}</p>
         )}
       </div>
-
-      {recipe.imagePath && (
-        <SmartImage
-          src={recipe.imagePath}
-          style={{ objectPosition: recipe.imagePos || "50% 50%" }}
-          wrapperClassName="w-full h-72 rounded-xl"
-          imgClassName="w-full h-72 object-cover"
-        />
-      )}
 
       {/* Times & oven temp */}
       {(times.length > 0 || recipe.ovenTemp != null) && (
@@ -284,14 +293,14 @@ export default function RecipeClient({
           {times.map(([label, v]) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1"
+              className="inline-flex items-center gap-1.5 bg-surface rounded-full px-3 py-1"
             >
               <ClockIcon size={14} />
               {label} {formatDuration(v)}
             </span>
           ))}
           {recipe.ovenTemp != null && (
-            <span className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1">
+            <span className="inline-flex items-center gap-1.5 bg-surface rounded-full px-3 py-1">
               {recipe.ovenTemp}°C
             </span>
           )}
@@ -321,7 +330,7 @@ export default function RecipeClient({
       </div>
 
       <section>
-        <h2 className="text-xl mb-2">Ingredients</h2>
+        <h2 className="text-2xl text-accent mb-2">Ingredients</h2>
         <ul className="flex flex-col gap-0.5">
           {ingredients.map((ing) => {
             const on = checked.has(ing.id);
@@ -369,10 +378,10 @@ export default function RecipeClient({
 
       {sortedTools.length > 0 && (
         <section>
-          <h2 className="text-xl mb-2">Tools</h2>
+          <h2 className="text-2xl text-accent mb-2">Tools</h2>
           <ul className="flex flex-wrap gap-2 text-sm">
             {sortedTools.map((tool) => (
-              <li key={tool.id} className="border rounded-full px-3 py-1">
+              <li key={tool.id} className="bg-surface rounded-full px-3 py-1">
                 {tool.name}
               </li>
             ))}
@@ -389,7 +398,7 @@ export default function RecipeClient({
         {/* Right: method + cooking history — scrolls past the sticky details */}
         <div className="flex flex-col gap-6 min-w-0">
       <section>
-        <h2 className="text-xl mb-2">Method</h2>
+        <h2 className="text-2xl text-accent mb-2">Method</h2>
         <ol className="flex flex-col gap-3">
           {recipe.steps
             .slice()
@@ -462,6 +471,7 @@ export default function RecipeClient({
 
       {/* mobile: credit sits at the very bottom of the page */}
       <p className="lg:hidden text-xs text-muted border-t pt-4">{metaLine}</p>
+      </div>
     </div>
   );
 }

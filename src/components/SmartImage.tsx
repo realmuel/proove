@@ -80,6 +80,7 @@ export default function SmartImage({
         alt={alt}
         style={style}
         decoding="async"
+        loading="lazy"
         onLoad={() => setLoaded(true)}
         onError={() => {
           if (attempt < MAX_ATTEMPTS) setAttempt((a) => a + 1);

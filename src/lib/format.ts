@@ -144,10 +144,3 @@ export function formatDate(
 ): string {
   return new Date(value).toLocaleString(LOCALE, { timeZone: TIME_ZONE, ...opts });
 }
-
-/* Whole calendar days between two instants, counted in TIME_ZONE. */
-export function daysBetween(from: string | number | Date, to: string | number | Date): number {
-  const day = (v: string | number | Date) =>
-    Date.parse(new Date(v).toLocaleDateString("en-CA", { timeZone: TIME_ZONE }));
-  return Math.round((day(to) - day(from)) / 86400000);
-}

@@ -43,6 +43,8 @@ export function loadMeal(id: string) {
         order: mr.order,
         title: r?.title ?? "(deleted recipe)",
         imagePath: r?.imagePath ?? null,
+        imagePos: r?.imagePos ?? null,
+        emoji: r?.emoji ?? null,
         missing: !r,
       };
     }),

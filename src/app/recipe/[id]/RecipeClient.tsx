@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { useWakeLock } from "@/lib/useWakeLock";
-import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
+import { useRecordEvents } from "@/lib/useRecordEvents";
 import { shareOrDownloadFile } from "@/lib/share";
 import { formatDuration, formatAmount, formatDate } from "@/lib/format";
 import SmartImage from "@/components/SmartImage";
@@ -39,23 +39,12 @@ type Recipe = {
   steps: { id: string; order: number; content: string }[];
   tools?: { id: string; name: string }[];
 };
-type CookLog = { id: string; cookedAt: string; notes: string | null };
 
 function fmtDate(ms: number | string) {
   return formatDate(ms, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  });
-}
-
-function fmtLogDate(ms: number | string) {
-  return formatDate(ms, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
   });
 }
 
@@ -71,9 +60,6 @@ export default function RecipeClient({
   const loadedRef = useRef(false);
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [servings, setServings] = useState(1);
-  const [logs, setLogs] = useState<CookLog[]>([]);
-  const [note, setNote] = useState("");
-  const [logging, setLogging] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState<"recipe" | "pdf" | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -110,16 +96,6 @@ export default function RecipeClient({
     refreshRecipe();
   }, [refreshRecipe]);
 
-  const refreshLogs = useCallback(() => {
-    fetch(`/api/logs?recipeId=${id}`)
-      .then((r) => r.json())
-      .then(setLogs);
-  }, [id]);
-
-  useEffect(() => {
-    refreshLogs();
-  }, [refreshLogs]);
-
   // realtime: react to changes made by other viewers of this recipe
   useRecordEvents(`recipe:${id}`, (e) => {
     if (e.type === "deleted") {
@@ -128,7 +104,6 @@ export default function RecipeClient({
       return;
     }
     refreshRecipe();
-    refreshLogs();
     notify("Recipe updated");
   });
 
@@ -149,29 +124,6 @@ export default function RecipeClient({
     ["Prove", recipe.proveTime],
   ].filter(([, v]) => v != null) as [string, number][];
 
-  async function logCook() {
-    setLogging(true);
-    try {
-      await fetch("/api/logs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipeId: id, notes: note, origin: clientId() }),
-      });
-      setNote("");
-      refreshLogs();
-      notify("Cook logged");
-    } finally {
-      setLogging(false);
-    }
-  }
-
-  async function deleteLog(logId: string) {
-    await fetch(`/api/logs?id=${logId}&origin=${clientId()}`, {
-      method: "DELETE",
-    });
-    refreshLogs();
-    notify("Entry removed");
-  }
 
   async function exportFile(url: string, ext: "recipe" | "pdf") {
     setExporting(ext);
@@ -201,9 +153,9 @@ export default function RecipeClient({
   );
 
   return (
-    <div className="-m-5">
-      {/* Action bar — floats over the hero, stays put while you scroll */}
-      <div className="topbar mx-5 mt-5 -mb-14 flex items-center justify-between">
+    <div className={recipe.imagePath ? "-m-5 relative" : "flex flex-col gap-6"}>
+      {/* Action bar — floats over the hero, scrolls away with the page */}
+      <div className={`topbar flex items-center justify-between ${recipe.imagePath ? "absolute inset-x-5 top-5" : ""}`}>
         <Link
           href={backHref}
           className="icon-btn icon-btn-float"
@@ -259,24 +211,20 @@ export default function RecipeClient({
         </div>
       </div>
 
-      {/* Hero stays pinned; the sheet below scrolls up over it */}
-      <div className="sticky top-0 h-[50vh] overflow-hidden bg-accent/10">
-        {recipe.imagePath ? (
+      {/* Hero stays pinned; the sheet below scrolls up over it. No image, no hero. */}
+      {recipe.imagePath && (
+        <div className="sticky top-0 h-[50vh] overflow-hidden bg-accent/10">
           <SmartImage
             src={recipe.imagePath}
             style={{ objectPosition: recipe.imagePos || "50% 50%" }}
             wrapperClassName="w-full h-[50vh]"
             imgClassName="w-full h-[50vh] object-cover"
           />
-        ) : (
-          <div className="h-full grid place-items-center text-8xl select-none">
-            {recipe.emoji || "🍽️"}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="relative z-10 -mt-7 min-h-[60vh] rounded-t-3xl bg-background px-5 pt-3 pb-8 flex flex-col gap-6 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
-      <div className="mx-auto h-1 w-10 rounded-full bg-muted/40" aria-hidden />
+      <div className={recipe.imagePath ? "relative z-10 -mt-7 min-h-[60vh] rounded-t-3xl bg-background px-5 pt-3 pb-8 flex flex-col gap-6 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]" : "flex flex-col gap-6"}>
+      {recipe.imagePath && <div className="mx-auto h-1 w-10 rounded-full bg-muted/40" aria-hidden />}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10 lg:items-start animate-rise">
         {/* Left: recipe details */}
         <div className="flex flex-col gap-6 min-w-0">
@@ -395,7 +343,7 @@ export default function RecipeClient({
       </p>
         </div>
 
-        {/* Right: method + cooking history — scrolls past the sticky details */}
+        {/* Right: method — scrolls past the sticky details */}
         <div className="flex flex-col gap-6 min-w-0">
       <section>
         <h2 className="text-2xl text-accent mb-2">Method</h2>
@@ -410,61 +358,6 @@ export default function RecipeClient({
               </li>
             ))}
         </ol>
-      </section>
-
-      <section className="border-t pt-5">
-        <h2 className="text-xl mb-1">Cooking history</h2>
-        <p className="text-sm text-muted mb-3">
-          {logs.length === 0
-            ? "Not cooked yet."
-            : `Cooked ${logs.length} ${logs.length === 1 ? "time" : "times"}.`}
-        </p>
-
-        <div className="flex gap-2">
-          <input
-            className="border rounded-lg p-2 flex-1"
-            placeholder="Optional note (e.g. doubled the recipe)"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") logCook();
-            }}
-          />
-          <button
-            onClick={logCook}
-            disabled={logging}
-            className="btn-primary disabled:opacity-50 shrink-0"
-          >
-            <CheckIcon size={16} />
-            Log a cook
-          </button>
-        </div>
-
-        {logs.length > 0 && (
-          <ul className="flex flex-col mt-4">
-            {logs.map((log) => (
-              <li
-                key={log.id}
-                className="flex items-start gap-3 py-2.5 border-b last:border-b-0"
-              >
-                <ClockIcon size={15} className="text-muted mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm">{fmtLogDate(log.cookedAt)}</div>
-                  {log.notes && (
-                    <div className="text-sm text-muted">{log.notes}</div>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteLog(log.id)}
-                  aria-label="Remove entry"
-                  className="text-muted text-sm shrink-0"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
         </div>
       </div>

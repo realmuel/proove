@@ -412,7 +412,7 @@ export default function RecipeForm({
       <ConfirmDialog
         open={confirmDelete}
         title="Delete this recipe?"
-        message="This permanently removes the recipe and its cooking history. This can’t be undone."
+        message="This permanently removes the recipe. This can’t be undone."
         confirmLabel={deleting ? "Deleting…" : "Delete"}
         destructive
         onCancel={() => setConfirmDelete(false)}

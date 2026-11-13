@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo } from "react";
 
-const COLORS = ["#b3622f", "#d68a52", "#e0b04a", "#7a9a6d", "#c96b5b", "#e9dcc3"];
+// Brand greens + cream; "var(--accent)" flips with light/dark mode.
+const COLORS = ["var(--accent)", "#254131", "#6b7f6e", "#8fc3a3", "#b9d4c0", "#f6efe6"];
 
 /* A lightweight, dependency-free confetti burst + message, shown when every
    timeline task has been ticked off. Auto-dismisses, and is click-to-close. */

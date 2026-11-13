@@ -115,10 +115,10 @@
     @apply bg-surface/65 backdrop-blur-sm text-accent;
   }
 
-  /* Sticky top action bar — just keeps the icon row pinned near the top while
-     you scroll. No banner: the icons themselves carry the translucency. */
+  /* Top action bar — scrolls away with the page so it never covers text.
+     No banner: the icons themselves carry the translucency. */
   .topbar {
-    @apply sticky top-2 z-30;
+    @apply z-30;
   }
 }
 

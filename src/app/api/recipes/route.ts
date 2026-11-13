@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { recipes, ingredients, steps, tools, cookLogs } from "@/db/schema";
+import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { v4 as uuid } from "uuid";
 import { publish } from "@/lib/events";
 import { randomEmoji } from "@/lib/emoji";
@@ -199,7 +199,6 @@ export async function DELETE(req: Request) {
   db.delete(ingredients).where(eq(ingredients.recipeId, id)).run();
   db.delete(steps).where(eq(steps.recipeId, id)).run();
   db.delete(tools).where(eq(tools.recipeId, id)).run();
-  db.delete(cookLogs).where(eq(cookLogs.recipeId, id)).run();
   db.delete(recipes).where(eq(recipes.id, id)).run();
 
   publish(`recipe:${id}`, { type: "deleted" });

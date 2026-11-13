@@ -63,15 +63,6 @@ export const tools = sqliteTable("tools", {
   name: text("name").notNull(),
 });
 
-/* ------------------ COOK LOGS ------------------ */
-export const cookLogs = sqliteTable("cook_logs", {
-  id: text("id").primaryKey(),
-  recipeId: text("recipe_id").notNull(),
-
-  cookedAt: integer("cooked_at", { mode: "timestamp" }).notNull(),
-  notes: text("notes"),
-});
-
 /* ------------------ MEALS ------------------ */
 /* A meal groups several recipes together with a prep timeline and an ETA. */
 export const meals = sqliteTable("meals", {

@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDate, daysBetween } from "@/lib/format";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,8 +18,6 @@ export type BrowserItem = {
   createdBy: string;
   /* extra text to match on when searching (ingredient / recipe names) */
   keywords: string[];
-  /* most recent cook (ms since epoch); recipes only */
-  lastCookedAt: number | null;
 };
 
 const ALPHABET = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
@@ -28,19 +25,6 @@ const ALPHABET = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
 function letterOf(title: string) {
   const c = (title.trim()[0] || "#").toUpperCase();
   return /[A-Z]/.test(c) ? c : "#";
-}
-
-function relativeDay(ms: number) {
-  const days = daysBetween(ms, Date.now());
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
-  const sameYear = formatDate(ms, { year: "numeric" }) === formatDate(Date.now(), { year: "numeric" });
-  return formatDate(ms, {
-    month: "short",
-    day: "numeric",
-    year: sameYear ? undefined : "numeric",
-  });
 }
 
 function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
@@ -67,13 +51,6 @@ function Card({ item, index = 0 }: { item: BrowserItem; index?: number }) {
         {item.description && (
           <div className="text-sm text-muted truncate mt-0.5">
             {item.description}
-          </div>
-        )}
-        {!isMeal && (
-          <div className="text-xs text-muted mt-0.5">
-            {item.lastCookedAt
-              ? `Last cooked ${relativeDay(item.lastCookedAt)}`
-              : "Not cooked yet"}
           </div>
         )}
       </div>

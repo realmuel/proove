@@ -16,7 +16,6 @@ Scale recipes, plan multi-dish meals against a countdown timeline, and keep it a
 - **Recipes**: ingredients, method, tools, oven temperature, and prep / cook / chill / cool / prove times, with a photo or an emoji.
 - **Serving scaler**: change the servings and every quantity rescales (understands `1 1/2`, `¾`, etc.).
 - **Cooking mode**: tick off ingredients as you go; the screen stays awake while you cook.
-- **Cook log**: record each time you make a recipe, with notes.
 - **Meals**: group several recipes, set a "ready by" time, and build a timeline of tasks that you check off as you cook. A little celebration when you finish.
 - **Live sync**: open the same recipe or meal on two devices and edits appear on both.
 - **Import / export**: share recipes as `.recipe` files and meals as `.meal` files (images embedded), or export a recipe as a printable **PDF**.

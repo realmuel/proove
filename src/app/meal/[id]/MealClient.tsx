@@ -53,6 +53,8 @@ type Meal = {
     recipeId: string;
     title: string;
     imagePath: string | null;
+    imagePos: string | null;
+    emoji: string | null;
     missing: boolean;
   }[];
   timeline: TimelineItem[];
@@ -268,11 +270,14 @@ export default function MealClient({ id }: { id: string }) {
               {r.imagePath ? (
                 <SmartImage
                   src={r.imagePath}
+                  style={{ objectPosition: r.imagePos || "50% 50%" }}
                   wrapperClassName="w-12 h-12 rounded-lg shrink-0"
                   imgClassName="w-12 h-12 object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-background border shrink-0" />
+                <div className="w-12 h-12 rounded-lg bg-accent/10 shrink-0 grid place-items-center select-none">
+                  <span className="text-2xl leading-none">{r.emoji || "🍽️"}</span>
+                </div>
               )}
               <span className="truncate">{r.title}</span>
             </Link>
@@ -379,11 +384,11 @@ export default function MealClient({ id }: { id: string }) {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={meal.imagePath ? "-m-5 relative" : "flex flex-col gap-6"}>
       {celebrate && <Celebration onDone={() => setCelebrate(false)} />}
 
-      {/* Action bar — sticky, stays put while you scroll the meal */}
-      <div className="topbar flex items-center justify-between">
+      {/* Action bar — scrolls away with the page */}
+      <div className={`topbar flex items-center justify-between ${meal.imagePath ? "absolute inset-x-5 top-5" : ""}`}>
         <Link href="/" className="icon-btn icon-btn-float" aria-label="Back to home">
           <BackIcon size={20} />
         </Link>
@@ -422,20 +427,25 @@ export default function MealClient({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* Hero stays pinned; the sheet below scrolls up over it. No image, no hero. */}
+      {meal.imagePath && (
+        <div className="sticky top-0 h-[50vh] overflow-hidden bg-accent/10">
+          <SmartImage
+            src={meal.imagePath}
+            style={{ objectPosition: meal.imagePos || "50% 50%" }}
+            wrapperClassName="w-full h-[50vh]"
+            imgClassName="w-full h-[50vh] object-cover"
+          />
+        </div>
+      )}
+
+      <div className={meal.imagePath ? "relative z-10 -mt-7 min-h-[60vh] rounded-t-3xl bg-background px-5 pt-3 pb-8 flex flex-col gap-6 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]" : "flex flex-col gap-6"}>
+      {meal.imagePath && <div className="mx-auto h-1 w-10 rounded-full bg-muted/40" aria-hidden />}
       {/* Header */}
       <div className="flex flex-col gap-1 animate-rise">
         <h1 className="text-3xl leading-tight">{meal.name}</h1>
         {meal.description && <p className="text-muted">{meal.description}</p>}
       </div>
-
-      {meal.imagePath && (
-        <SmartImage
-          src={meal.imagePath}
-          style={{ objectPosition: meal.imagePos || "50% 50%" }}
-          wrapperClassName="w-full h-72 rounded-xl"
-          imgClassName="w-full h-72 object-cover"
-        />
-      )}
 
       {/* Prep time pill sits just below the image */}
       {meal.prepTime != null && (
@@ -549,6 +559,7 @@ export default function MealClient({ id }: { id: string }) {
           <> · Updated {fmtDate(meal.updatedAt)}</>
         )}
       </p>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,1 @@
+DROP TABLE `cook_logs`;

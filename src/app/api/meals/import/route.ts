@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 
 import { db } from "@/db";
 import { meals, mealRecipes, mealTimeline } from "@/db/schema";
-import { v4 as uuid } from "uuid";
 import { createRecipeFromPayload, saveEmbeddedImage } from "@/lib/recipeIO";
 import { randomEmoji } from "@/lib/emoji";
 import { publish } from "@/lib/events";
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
   }
 
   const m = parsed.meal;
-  const mealId = uuid();
+  const mealId = crypto.randomUUID();
   const now = new Date();
 
   // Recreate each embedded recipe, mapping its export key to the new id.
@@ -58,42 +57,44 @@ export async function POST(req: Request) {
 
   const imagePath = await saveEmbeddedImage(m.image);
 
-  db.insert(meals)
-    .values({
-      id: mealId,
-      name: m.name,
-      description: m.description ?? null,
-      emoji: m.emoji || randomEmoji(),
-      imagePath,
-      imagePos: m.imagePos ?? null,
-      prepTime: m.prepTime ?? null,
-      etaAt: m.etaAt ? new Date(m.etaAt) : null,
-      createdBy: m.createdBy ?? "Imported",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .run();
-
-  // attach the recreated recipes in order (timeline-only recipes stay linked
-  // through the timeline below, but aren't added to the attached list)
-  attachedIds.forEach((recipeId, i) => {
-    db.insert(mealRecipes)
-      .values({ id: uuid(), mealId, recipeId, order: i })
-      .run();
-  });
-
-  (m.timeline ?? []).forEach((t, i) => {
-    db.insert(mealTimeline)
+  db.transaction((tx) => {
+    tx.insert(meals)
       .values({
-        id: uuid(),
-        mealId,
-        time: t.time ?? "",
-        content: t.content ?? "",
-        recipeId: t.recipeKey ? idByKey.get(t.recipeKey) ?? null : null,
-        done: !!t.done,
-        order: i,
+        id: mealId,
+        name: m.name,
+        description: m.description ?? null,
+        emoji: m.emoji || randomEmoji(),
+        imagePath,
+        imagePos: m.imagePos ?? null,
+        prepTime: m.prepTime ?? null,
+        etaAt: m.etaAt ? new Date(m.etaAt) : null,
+        createdBy: m.createdBy ?? "Imported",
+        createdAt: now,
+        updatedAt: now,
       })
       .run();
+
+    // attach the recreated recipes in order (timeline-only recipes stay linked
+    // through the timeline below, but aren't added to the attached list)
+    attachedIds.forEach((recipeId, i) => {
+      tx.insert(mealRecipes)
+        .values({ id: crypto.randomUUID(), mealId, recipeId, order: i })
+        .run();
+    });
+
+    (m.timeline ?? []).forEach((t, i) => {
+      tx.insert(mealTimeline)
+        .values({
+          id: crypto.randomUUID(),
+          mealId,
+          time: t.time ?? "",
+          content: t.content ?? "",
+          recipeId: t.recipeKey ? idByKey.get(t.recipeKey) ?? null : null,
+          done: !!t.done,
+          order: i,
+        })
+        .run();
+    });
   });
 
   publish("home", { type: "updated" });

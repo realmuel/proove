@@ -2,7 +2,8 @@ import {
   sqliteTable,
   text,
   integer,
-  real
+  real,
+  index,
 } from "drizzle-orm/sqlite-core";
 
 /* ------------------ RECIPES ------------------ */
@@ -39,29 +40,35 @@ export const recipes = sqliteTable("recipes", {
 /* ------------------ INGREDIENTS ------------------ */
 export const ingredients = sqliteTable("ingredients", {
   id: text("id").primaryKey(),
-  recipeId: text("recipe_id").notNull(),
+  recipeId: text("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
 
   name: text("name").notNull(),
   amount: real("amount").notNull(),
   unit: text("unit").notNull(),
-});
+}, (t) => [index("ingredients_recipe_idx").on(t.recipeId)]);
 
 /* ------------------ STEPS ------------------ */
 export const steps = sqliteTable("steps", {
   id: text("id").primaryKey(),
-  recipeId: text("recipe_id").notNull(),
+  recipeId: text("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
 
   order: integer("order").notNull(),
   content: text("content").notNull(),
-});
+}, (t) => [index("steps_recipe_idx").on(t.recipeId)]);
 
 /* ------------------ TOOLS ------------------ */
 export const tools = sqliteTable("tools", {
   id: text("id").primaryKey(),
-  recipeId: text("recipe_id").notNull(),
+  recipeId: text("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
 
   name: text("name").notNull(),
-});
+}, (t) => [index("tools_recipe_idx").on(t.recipeId)]);
 
 /* ------------------ MEALS ------------------ */
 /* A meal groups several recipes together with a prep timeline and an ETA. */
@@ -98,16 +105,21 @@ export const meals = sqliteTable("meals", {
 /* Recipes attached to a meal (many-to-many, ordered). */
 export const mealRecipes = sqliteTable("meal_recipes", {
   id: text("id").primaryKey(),
-  mealId: text("meal_id").notNull(),
+  mealId: text("meal_id")
+    .notNull()
+    .references(() => meals.id, { onDelete: "cascade" }),
+  // deliberately no FK: deleting a recipe leaves the meal showing "(deleted recipe)"
   recipeId: text("recipe_id").notNull(),
 
   order: integer("order").notNull(),
-});
+}, (t) => [index("meal_recipes_meal_idx").on(t.mealId)]);
 
 /* A single action on the meal's preparation timeline. */
 export const mealTimeline = sqliteTable("meal_timeline", {
   id: text("id").primaryKey(),
-  mealId: text("meal_id").notNull(),
+  mealId: text("meal_id")
+    .notNull()
+    .references(() => meals.id, { onDelete: "cascade" }),
 
   // clock time of day, "HH:MM"
   time: text("time").notNull(),
@@ -120,4 +132,4 @@ export const mealTimeline = sqliteTable("meal_timeline", {
   done: integer("done", { mode: "boolean" }).notNull().default(false),
 
   order: integer("order").notNull(),
-});
+}, (t) => [index("meal_timeline_meal_idx").on(t.mealId)]);

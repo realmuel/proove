@@ -12,5 +12,10 @@ const dbPath = process.env.DATABASE_PATH || "sqlite.db";
 mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true });
 
 const sqlite = new Database(dbPath);
+// WAL: readers don't block the writer and it's crash-safer; busy_timeout waits
+// instead of failing on a locked DB; foreign keys enforce the cascades.
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("busy_timeout = 5000");
+sqlite.pragma("foreign_keys = ON");
 
 export const db = drizzle(sqlite);

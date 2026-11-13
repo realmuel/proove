@@ -3,7 +3,6 @@ import path from "path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
-import { v4 as uuid } from "uuid";
 import { randomEmoji } from "@/lib/emoji";
 import { processUploadImage } from "@/lib/processImage";
 
@@ -107,7 +106,7 @@ async function saveEmbeddedImage(image: {
   );
   const uploadDir = path.join(process.cwd(), "public/uploads");
   await mkdir(uploadDir, { recursive: true });
-  const filename = `${Date.now()}-${uuid().slice(0, 8)}${ext}`;
+  const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`;
   await writeFile(path.join(uploadDir, filename), buffer);
   return `/uploads/${filename}`;
 }
@@ -117,57 +116,59 @@ export async function createRecipeFromPayload(
   r: Partial<RecipePayload> & { title: string },
   createdByFallback = "Imported"
 ): Promise<string> {
-  const recipeId = uuid();
+  const recipeId = crypto.randomUUID();
   const now = new Date();
   const imagePath = await saveEmbeddedImage(r.image);
 
-  db.insert(recipes)
-    .values({
-      id: recipeId,
-      title: r.title,
-      description: r.description ?? null,
-      servings: r.servings ?? 1,
-      emoji: r.emoji || randomEmoji(),
-      ovenTemp: r.ovenTemp ?? null,
-      prepTime: r.prepTime ?? null,
-      cookTime: r.cookTime ?? null,
-      chillTime: r.chillTime ?? null,
-      coolTime: r.coolTime ?? null,
-      proveTime: r.proveTime ?? null,
-      imagePath,
-      imagePos: r.imagePos ?? null,
-      createdBy: r.createdBy ?? createdByFallback,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .run();
-
-  for (const ing of r.ingredients ?? []) {
-    db.insert(ingredients)
+  db.transaction((tx) => {
+    tx.insert(recipes)
       .values({
-        id: uuid(),
-        recipeId,
-        name: ing.name,
-        amount: ing.amount ?? 0,
-        unit: ing.unit ?? "",
+        id: recipeId,
+        title: r.title,
+        description: r.description ?? null,
+        servings: r.servings ?? 1,
+        emoji: r.emoji || randomEmoji(),
+        ovenTemp: r.ovenTemp ?? null,
+        prepTime: r.prepTime ?? null,
+        cookTime: r.cookTime ?? null,
+        chillTime: r.chillTime ?? null,
+        coolTime: r.coolTime ?? null,
+        proveTime: r.proveTime ?? null,
+        imagePath,
+        imagePos: r.imagePos ?? null,
+        createdBy: r.createdBy ?? createdByFallback,
+        createdAt: now,
+        updatedAt: now,
       })
       .run();
-  }
 
-  (r.steps ?? []).forEach((step, i) => {
-    db.insert(steps)
-      .values({
-        id: uuid(),
-        recipeId,
-        order: step.order ?? i + 1,
-        content: step.content ?? "",
-      })
-      .run();
+    for (const ing of r.ingredients ?? []) {
+      tx.insert(ingredients)
+        .values({
+          id: crypto.randomUUID(),
+          recipeId,
+          name: ing.name,
+          amount: ing.amount ?? 0,
+          unit: ing.unit ?? "",
+        })
+        .run();
+    }
+
+    (r.steps ?? []).forEach((step, i) => {
+      tx.insert(steps)
+        .values({
+          id: crypto.randomUUID(),
+          recipeId,
+          order: step.order ?? i + 1,
+          content: step.content ?? "",
+        })
+        .run();
+    });
+
+    for (const tool of r.tools ?? []) {
+      tx.insert(tools).values({ id: crypto.randomUUID(), recipeId, name: tool.name }).run();
+    }
   });
-
-  for (const tool of r.tools ?? []) {
-    db.insert(tools).values({ id: uuid(), recipeId, name: tool.name }).run();
-  }
 
   return recipeId;
 }

@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { meals, mealRecipes, mealTimeline, recipes } from "@/db/schema";
-import { v4 as uuid } from "uuid";
 import { publish } from "@/lib/events";
 import { randomEmoji } from "@/lib/emoji";
 
@@ -69,7 +68,10 @@ export async function GET(req: Request) {
 }
 
 /* Insert the meal's attached recipes and timeline rows. Shared by POST/PUT. */
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 function writeChildren(
+  tx: Tx,
   mealId: string,
   body: {
     recipes?: { recipeId: string }[];
@@ -83,15 +85,15 @@ function writeChildren(
 ) {
   (body.recipes ?? []).forEach((r, i) => {
     if (!r.recipeId) return;
-    db.insert(mealRecipes)
-      .values({ id: uuid(), mealId, recipeId: r.recipeId, order: i })
+    tx.insert(mealRecipes)
+      .values({ id: crypto.randomUUID(), mealId, recipeId: r.recipeId, order: i })
       .run();
   });
 
   (body.timeline ?? []).forEach((t, i) => {
-    db.insert(mealTimeline)
+    tx.insert(mealTimeline)
       .values({
-        id: uuid(),
+        id: crypto.randomUUID(),
         mealId,
         time: t.time ?? "",
         content: t.content ?? "",
@@ -105,26 +107,28 @@ function writeChildren(
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const id = uuid();
+  const id = crypto.randomUUID();
   const now = new Date();
 
-  db.insert(meals)
-    .values({
-      id,
-      name: body.name,
-      description: body.description ?? null,
-      emoji: body.emoji || randomEmoji(),
-      imagePath: body.imagePath ?? null,
-      imagePos: body.imagePos ?? null,
-      prepTime: body.prepTime ?? null,
-      etaAt: body.etaAt ? new Date(body.etaAt) : null,
-      createdBy: body.createdBy ?? "Unknown",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .run();
+  db.transaction((tx) => {
+    tx.insert(meals)
+      .values({
+        id,
+        name: body.name,
+        description: body.description ?? null,
+        emoji: body.emoji || randomEmoji(),
+        imagePath: body.imagePath ?? null,
+        imagePos: body.imagePos ?? null,
+        prepTime: body.prepTime ?? null,
+        etaAt: body.etaAt ? new Date(body.etaAt) : null,
+        createdBy: body.createdBy ?? "Unknown",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
 
-  writeChildren(id, body);
+    writeChildren(tx, id, body);
+  });
 
   publish("home", { type: "updated", origin: body.origin });
 
@@ -155,26 +159,27 @@ export async function PUT(req: Request) {
 
   const nextVersion = (current.version ?? 1) + 1;
 
-  db.update(meals)
-    .set({
-      name: body.name,
-      description: body.description ?? null,
-      emoji: body.emoji || current.emoji || randomEmoji(),
-      createdBy: body.createdBy ?? current.createdBy,
-      imagePath: body.imagePath ?? null,
-      imagePos: body.imagePos ?? null,
-      prepTime: body.prepTime ?? null,
-      etaAt: body.etaAt ? new Date(body.etaAt) : null,
-      updatedAt: now,
-      version: nextVersion,
-    })
-    .where(eq(meals.id, id))
-    .run();
+  db.transaction((tx) => {
+    tx.update(meals)
+      .set({
+        name: body.name,
+        description: body.description ?? null,
+        emoji: body.emoji || current.emoji || randomEmoji(),
+        createdBy: body.createdBy ?? current.createdBy,
+        imagePath: body.imagePath ?? null,
+        imagePos: body.imagePos ?? null,
+        prepTime: body.prepTime ?? null,
+        etaAt: body.etaAt ? new Date(body.etaAt) : null,
+        updatedAt: now,
+        version: nextVersion,
+      })
+      .where(eq(meals.id, id))
+      .run();
 
-  // replace child rows wholesale
-  db.delete(mealRecipes).where(eq(mealRecipes.mealId, id)).run();
-  db.delete(mealTimeline).where(eq(mealTimeline.mealId, id)).run();
-  writeChildren(id, body);
+    tx.delete(mealRecipes).where(eq(mealRecipes.mealId, id)).run();
+    tx.delete(mealTimeline).where(eq(mealTimeline.mealId, id)).run();
+    writeChildren(tx, id, body);
+  });
 
   publish(`meal:${id}`, {
     type: "updated",
@@ -191,8 +196,7 @@ export async function DELETE(req: Request) {
   const id = searchParams.get("id");
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
 
-  db.delete(mealRecipes).where(eq(mealRecipes.mealId, id)).run();
-  db.delete(mealTimeline).where(eq(mealTimeline.mealId, id)).run();
+  // attached recipes and timeline go with it via ON DELETE CASCADE
   db.delete(meals).where(eq(meals.id, id)).run();
 
   publish(`meal:${id}`, { type: "deleted" });

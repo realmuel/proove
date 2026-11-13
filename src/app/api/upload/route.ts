@@ -1,6 +1,5 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import { v4 as uuid } from "uuid";
 import { processUploadImage } from "@/lib/processImage";
 
 export const runtime = "nodejs";
@@ -21,7 +20,7 @@ export async function POST(req: Request) {
   await mkdir(uploadDir, { recursive: true });
 
   // safe, unique filename — no spaces or odd characters in the served URL
-  const filename = `${Date.now()}-${uuid().slice(0, 8)}${ext}`;
+  const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`;
   await writeFile(path.join(uploadDir, filename), buffer);
 
   return Response.json({

@@ -3,7 +3,6 @@ export const runtime = "nodejs";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
-import { v4 as uuid } from "uuid";
 import { publish } from "@/lib/events";
 import { randomEmoji } from "@/lib/emoji";
 
@@ -32,62 +31,64 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json();
 
-  const recipeId = uuid();
+  const recipeId = crypto.randomUUID();
   //const now = Date.now();
   const now = new Date();
 
-  // 1. insert recipe
-  db.insert(recipes).values({
-    id: recipeId,
-    title: body.title,
-    description: body.description ?? null,
-    servings: body.servings,
-    emoji: body.emoji || randomEmoji(),
+  db.transaction((tx) => {
+    // 1. insert recipe
+    tx.insert(recipes).values({
+      id: recipeId,
+      title: body.title,
+      description: body.description ?? null,
+      servings: body.servings,
+      emoji: body.emoji || randomEmoji(),
 
-    ovenTemp: body.ovenTemp ?? null,
-    prepTime: body.prepTime ?? null,
-    cookTime: body.cookTime ?? null,
-    chillTime: body.chillTime ?? null,
-    coolTime: body.coolTime ?? null,
-    proveTime: body.proveTime ?? null,
+      ovenTemp: body.ovenTemp ?? null,
+      prepTime: body.prepTime ?? null,
+      cookTime: body.cookTime ?? null,
+      chillTime: body.chillTime ?? null,
+      coolTime: body.coolTime ?? null,
+      proveTime: body.proveTime ?? null,
 
-    imagePath: body.imagePath ?? null,
-    imagePos: body.imagePos ?? null,
+      imagePath: body.imagePath ?? null,
+      imagePos: body.imagePos ?? null,
 
-    createdBy: body.createdBy ?? "Unknown",
-    createdAt: now,
-    updatedAt: now,
-  }).run();
-
-  // 2. ingredients
-  for (const ing of body.ingredients ?? []) {
-    db.insert(ingredients).values({
-      id: uuid(),
-      recipeId,
-      name: ing.name,
-      amount: ing.amount,
-      unit: ing.unit,
+      createdBy: body.createdBy ?? "Unknown",
+      createdAt: now,
+      updatedAt: now,
     }).run();
-  }
 
-  // 3. steps
-  for (const step of body.steps ?? []) {
-    db.insert(steps).values({
-      id: uuid(),
-      recipeId,
-      order: step.order,
-      content: step.content,
-    }).run();
-  }
+    // 2. ingredients
+    for (const ing of body.ingredients ?? []) {
+      tx.insert(ingredients).values({
+        id: crypto.randomUUID(),
+        recipeId,
+        name: ing.name,
+        amount: ing.amount,
+        unit: ing.unit,
+      }).run();
+    }
 
-  // 4. tools
-  for (const tool of body.tools ?? []) {
-    db.insert(tools).values({
-      id: uuid(),
-      recipeId,
-      name: tool.name,
-    }).run();
-  }
+    // 3. steps
+    for (const step of body.steps ?? []) {
+      tx.insert(steps).values({
+        id: crypto.randomUUID(),
+        recipeId,
+        order: step.order,
+        content: step.content,
+      }).run();
+    }
+
+    // 4. tools
+    for (const tool of body.tools ?? []) {
+      tx.insert(tools).values({
+        id: crypto.randomUUID(),
+        recipeId,
+        name: tool.name,
+      }).run();
+    }
+  });
 
   publish("home", { type: "updated", origin: body.origin });
 
@@ -123,61 +124,63 @@ export async function PUT(req: Request) {
 
   const nextVersion = (current.version ?? 1) + 1;
 
-  // update the recipe row (createdAt/createdBy left untouched)
-  db.update(recipes)
-    .set({
-      title: body.title,
-      description: body.description ?? null,
-      servings: body.servings,
-      emoji: body.emoji || current.emoji || randomEmoji(),
-      createdBy: body.createdBy ?? current.createdBy,
-      ovenTemp: body.ovenTemp ?? null,
-      prepTime: body.prepTime ?? null,
-      cookTime: body.cookTime ?? null,
-      chillTime: body.chillTime ?? null,
-      coolTime: body.coolTime ?? null,
-      proveTime: body.proveTime ?? null,
-      imagePath: body.imagePath ?? null,
-      imagePos: body.imagePos ?? null,
-      updatedAt: now,
-      version: nextVersion,
-    })
-    .where(eq(recipes.id, id))
-    .run();
-
-  // replace child rows wholesale — simplest correct approach for personal use
-  db.delete(ingredients).where(eq(ingredients.recipeId, id)).run();
-  db.delete(steps).where(eq(steps.recipeId, id)).run();
-  db.delete(tools).where(eq(tools.recipeId, id)).run();
-
-  for (const ing of body.ingredients ?? []) {
-    db.insert(ingredients)
-      .values({
-        id: uuid(),
-        recipeId: id,
-        name: ing.name,
-        amount: ing.amount,
-        unit: ing.unit,
+  db.transaction((tx) => {
+    // update the recipe row (createdAt/createdBy left untouched)
+    tx.update(recipes)
+      .set({
+        title: body.title,
+        description: body.description ?? null,
+        servings: body.servings,
+        emoji: body.emoji || current.emoji || randomEmoji(),
+        createdBy: body.createdBy ?? current.createdBy,
+        ovenTemp: body.ovenTemp ?? null,
+        prepTime: body.prepTime ?? null,
+        cookTime: body.cookTime ?? null,
+        chillTime: body.chillTime ?? null,
+        coolTime: body.coolTime ?? null,
+        proveTime: body.proveTime ?? null,
+        imagePath: body.imagePath ?? null,
+        imagePos: body.imagePos ?? null,
+        updatedAt: now,
+        version: nextVersion,
       })
+      .where(eq(recipes.id, id))
       .run();
-  }
 
-  for (const step of body.steps ?? []) {
-    db.insert(steps)
-      .values({
-        id: uuid(),
-        recipeId: id,
-        order: step.order,
-        content: step.content,
-      })
-      .run();
-  }
+    // replace child rows wholesale — simplest correct approach for personal use
+    tx.delete(ingredients).where(eq(ingredients.recipeId, id)).run();
+    tx.delete(steps).where(eq(steps.recipeId, id)).run();
+    tx.delete(tools).where(eq(tools.recipeId, id)).run();
 
-  for (const tool of body.tools ?? []) {
-    db.insert(tools)
-      .values({ id: uuid(), recipeId: id, name: tool.name })
-      .run();
-  }
+    for (const ing of body.ingredients ?? []) {
+      tx.insert(ingredients)
+        .values({
+          id: crypto.randomUUID(),
+          recipeId: id,
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+        })
+        .run();
+    }
+
+    for (const step of body.steps ?? []) {
+      tx.insert(steps)
+        .values({
+          id: crypto.randomUUID(),
+          recipeId: id,
+          order: step.order,
+          content: step.content,
+        })
+        .run();
+    }
+
+    for (const tool of body.tools ?? []) {
+      tx.insert(tools)
+        .values({ id: crypto.randomUUID(), recipeId: id, name: tool.name })
+        .run();
+    }
+  });
 
   publish(`recipe:${id}`, {
     type: "updated",
@@ -196,9 +199,7 @@ export async function DELETE(req: Request) {
     return Response.json({ error: "Missing id" }, { status: 400 });
   }
 
-  db.delete(ingredients).where(eq(ingredients.recipeId, id)).run();
-  db.delete(steps).where(eq(steps.recipeId, id)).run();
-  db.delete(tools).where(eq(tools.recipeId, id)).run();
+  // child rows go with it via ON DELETE CASCADE
   db.delete(recipes).where(eq(recipes.id, id)).run();
 
   publish(`recipe:${id}`, { type: "deleted" });

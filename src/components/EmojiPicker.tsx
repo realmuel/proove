@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { EMOJIS } from "@/lib/emoji";
+const EMOJI_RE = /\p{Extended_Pictographic}|\p{Regional_Indicator}/u;
+const segmenter = new Intl.Segmenter();
 
-/* A compact emoji button that opens a grid popover. Optional — when left blank
-   the server assigns a random one on save. */
+/* Last emoji in the text, or "". Taking the last one means typing or picking a
+   new emoji replaces the old; non-emoji characters are dropped. */
+function lastEmoji(text: string): string {
+  const found = [...segmenter.segment(text)]
+    .map((s) => s.segment)
+    .filter((g) => EMOJI_RE.test(g));
+  return found[found.length - 1] ?? "";
+}
+
+/* A one-emoji text field. There's no web API to open the OS emoji picker, so
+   focusing this lets you use it yourself: ⌃⌘Space (Mac), Win+. (Windows), or
+   the emoji keyboard on a phone. Optional — when left blank the server assigns
+   a random one on save. */
 export default function EmojiPicker({
   value,
   onChange,
@@ -12,80 +23,17 @@ export default function EmojiPicker({
   value: string;
   onChange: (emoji: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   return (
-    <div className="relative shrink-0" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Pick an emoji"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        className="h-full min-h-[42px] w-12 border rounded-lg bg-surface grid place-items-center"
-        title="Pick an emoji (optional)"
-      >
-        {value ? (
-          <span className="text-2xl leading-none">{value}</span>
-        ) : (
-          <span className="text-muted text-xl leading-none">＋</span>
-        )}
-      </button>
-
-      {open && (
-        <div
-          role="dialog"
-          aria-label="Choose an emoji"
-          className="absolute right-0 mt-2 z-20 w-64 max-h-64 overflow-y-auto bg-surface border rounded-xl p-2 shadow-lg"
-        >
-          {value && (
-            <button
-              type="button"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-              className="w-full text-left text-xs text-muted mb-1.5 px-1 py-1 rounded hover:bg-background"
-            >
-              Clear — assign a random one on save
-            </button>
-          )}
-          <div className="grid grid-cols-7 gap-0.5">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => {
-                  onChange(e);
-                  setOpen(false);
-                }}
-                className={`text-2xl leading-none aspect-square rounded grid place-items-center hover:bg-background ${
-                  value === e ? "bg-accent/15 ring-1 ring-accent" : ""
-                }`}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(lastEmoji(e.target.value))}
+      onFocus={(e) => e.target.select()}
+      aria-label="Emoji"
+      placeholder="＋"
+      autoComplete="off"
+      title="Click, then open your system emoji picker (⌃⌘Space on Mac, Win+. on Windows). Leave blank for a random one."
+      className="shrink-0 min-h-[42px] w-12 border rounded-lg bg-surface text-center text-2xl leading-none placeholder:text-muted placeholder:text-xl"
+    />
   );
 }

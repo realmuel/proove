@@ -77,7 +77,7 @@ function writeChildren(
   body: {
     recipes?: { recipeId: string }[];
     timeline?: {
-      time: string;
+      offsetMin: number;
       content: string;
       recipeId?: string | null;
       done?: boolean;
@@ -96,7 +96,7 @@ function writeChildren(
       .values({
         id: crypto.randomUUID(),
         mealId,
-        time: t.time ?? "",
+        offsetMin: Math.max(0, Math.round(Number(t.offsetMin)) || 0),
         content: t.content ?? "",
         recipeId: t.recipeId || null,
         done: t.done ?? false,
@@ -122,7 +122,6 @@ export async function POST(req: Request) {
         imagePath: safeImagePath(body.imagePath),
         imagePos: body.imagePos ?? null,
         prepTime: body.prepTime ?? null,
-        etaAt: body.etaAt ? new Date(body.etaAt) : null,
         createdBy: body.createdBy ?? "Unknown",
         createdAt: now,
         updatedAt: now,
@@ -172,7 +171,6 @@ export async function PUT(req: Request) {
         imagePath: safeImagePath(body.imagePath),
         imagePos: body.imagePos ?? null,
         prepTime: body.prepTime ?? null,
-        etaAt: body.etaAt ? new Date(body.etaAt) : null,
         updatedAt: now,
         version: nextVersion,
       })

@@ -108,11 +108,10 @@ export async function GET(req: Request) {
       emoji: meal.emoji,
       imagePos: meal.imagePos,
       prepTime: meal.prepTime,
-      etaAt: meal.etaAt ? new Date(meal.etaAt).toISOString() : null,
       image,
       recipes: recipePayloads,
       timeline: timeline.map((t) => ({
-        time: t.time,
+        offsetMin: t.offsetMin,
         content: t.content,
         done: t.done,
         recipeKey: t.recipeId ? keyByRecipeId.get(t.recipeId) ?? null : null,

@@ -14,12 +14,12 @@ type MealFile = {
   emoji?: string | null;
   imagePos?: string | null;
   prepTime?: number | null;
-  etaAt?: string | null;
   createdBy?: string;
   image?: { filename?: string; dataUrl?: string } | null;
   recipes?: { key?: string; attached?: boolean; recipe?: RecipeFile }[];
   timeline?: {
-    time?: string;
+    offsetMin?: number;
+    time?: string; // legacy "HH:MM" (files from before plate-up offsets)
     content?: string;
     recipeKey?: string;
     done?: boolean;
@@ -57,6 +57,17 @@ export async function POST(req: Request) {
 
   const imagePath = await saveEmbeddedImage(m.image);
 
+  // Legacy files stored clock times; convert to minutes before the latest one.
+  const mins = (hhmm?: string) => {
+    const [h, mm] = (hhmm ?? "").split(":").map(Number);
+    return Number.isFinite(h) && Number.isFinite(mm) ? h * 60 + mm : null;
+  };
+  const latest = Math.max(0, ...(m.timeline ?? []).map((t) => mins(t.time) ?? 0));
+  const offsetOf = (t: NonNullable<MealFile["timeline"]>[number]) => {
+    const n = t.offsetMin ?? (mins(t.time) != null ? latest - mins(t.time)! : 0);
+    return Math.max(0, Math.round(n) || 0);
+  };
+
   db.transaction((tx) => {
     tx.insert(meals)
       .values({
@@ -67,7 +78,6 @@ export async function POST(req: Request) {
         imagePath,
         imagePos: m.imagePos ?? null,
         prepTime: m.prepTime ?? null,
-        etaAt: m.etaAt ? new Date(m.etaAt) : null,
         createdBy: m.createdBy ?? "Imported",
         createdAt: now,
         updatedAt: now,
@@ -87,7 +97,7 @@ export async function POST(req: Request) {
         .values({
           id: crypto.randomUUID(),
           mealId,
-          time: t.time ?? "",
+          offsetMin: offsetOf(t),
           content: t.content ?? "",
           recipeId: t.recipeKey ? idByKey.get(t.recipeKey) ?? null : null,
           done: !!t.done,

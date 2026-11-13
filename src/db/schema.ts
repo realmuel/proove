@@ -88,7 +88,7 @@ export const meals = sqliteTable("meals", {
   // overall preparation time, minutes
   prepTime: integer("prep_time"),
 
-  // when the meal needs to be ready
+  // plate-up time, chosen when the meal is started
   etaAt: integer("eta_at", { mode: "timestamp" }),
 
   // whether the prep timers are actively counting down
@@ -121,8 +121,8 @@ export const mealTimeline = sqliteTable("meal_timeline", {
     .notNull()
     .references(() => meals.id, { onDelete: "cascade" }),
 
-  // clock time of day, "HH:MM"
-  time: text("time").notNull(),
+  // minutes before plate-up that this task is due (0 = at plate-up)
+  offsetMin: integer("offset_min").notNull().default(0),
   content: text("content").notNull(),
 
   // optional link to a recipe this action relates to

@@ -3,16 +3,6 @@
 import { use, useEffect, useState } from "react";
 import MealForm, { MealFormData } from "@/components/MealForm";
 
-/* Convert a stored timestamp to a value for <input type="datetime-local">,
-   in the viewer's local time. */
-function toLocalInput(value: string | number): string {
-  const d = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
-    d.getDate()
-  )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export default function EditMealPage({
   params,
 }: {
@@ -36,13 +26,12 @@ export default function EditMealPage({
           imagePath: data.imagePath ?? "",
           imagePos: data.imagePos ?? "50% 50%",
           prepTime: data.prepTime ?? null,
-          etaAt: data.etaAt ? toLocalInput(data.etaAt) : "",
           version: data.version ?? 1,
           recipes:
             data.recipes?.map((r: MealFormData["recipes"][number]) => ({ recipeId: r.recipeId })) ?? [],
           timeline:
             data.timeline?.map((t: Partial<MealFormData["timeline"][number]>) => ({
-              time: t.time ?? "",
+              offsetMin: t.offsetMin ?? 0,
               content: t.content ?? "",
               recipeId: t.recipeId ?? null,
             })) ?? [],

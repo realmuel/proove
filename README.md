@@ -16,7 +16,7 @@ Scale recipes, plan multi-dish meals against a countdown timeline, and keep it a
 - **Recipes**: ingredients, method, tools, oven temperature, and prep / cook / chill / cool / prove times, with a photo or an emoji.
 - **Serving scaler**: change the servings and every quantity rescales (understands `1 1/2`, `¾`, etc.).
 - **Cooking mode**: tick off ingredients as you go; the screen stays awake while you cook.
-- **Meals**: group several recipes, set a "ready by" time, and build a timeline of tasks that you check off as you cook. A little celebration when you finish.
+- **Meals**: group several recipes, build a timeline of tasks (minutes before serving), and pick the plate-up time when you start that you check off as you cook. A little celebration when you finish.
 - **Live sync**: open the same recipe or meal on two devices and edits appear on both.
 - **Import / export**: share recipes as `.recipe` files and meals as `.meal` files (images embedded), or export a recipe as a printable **PDF**.
 - **Search** across titles *and* ingredients.
@@ -104,8 +104,8 @@ npm start            # http://localhost:3000
 ### Plan a meal
 
 1. Choose **New meal**, name it, and attach the recipes that make up the meal.
-2. Set a **ready-by** time and add timeline entries (`HH:MM` plus what to do, optionally linked to a recipe).
-3. On the day, open the meal and tick tasks off as you go. Everyone viewing the meal sees progress live.
+2. Add timeline entries: minutes before serving plus what to do, optionally linked to a recipe.
+3. On the day, open the meal, press **Start**, choose the plate-up time (everything is scheduled backwards from it), and tick tasks off as you go. Everyone viewing the meal sees progress live.
 
 ### Import and export
 

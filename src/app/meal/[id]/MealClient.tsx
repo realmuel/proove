@@ -9,6 +9,7 @@ import { useRecordEvents, clientId } from "@/lib/useRecordEvents";
 import { shareOrDownloadFile } from "@/lib/share";
 import { formatDuration, formatDate } from "@/lib/format";
 import Celebration from "@/components/Celebration";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import SmartImage from "@/components/SmartImage";
 import { MealSkeleton } from "@/components/Skeletons";
 import {
@@ -26,7 +27,7 @@ import {
 
 type TimelineItem = {
   id: string;
-  time: string;
+  offsetMin: number;
   content: string;
   recipeId: string | null;
   recipeTitle: string | null;
@@ -60,16 +61,21 @@ type Meal = {
   timeline: TimelineItem[];
 };
 
-/* Resolve a "HH:MM" task time to an absolute Date, anchored to the ETA's
-   calendar day (or today when there's no ETA). */
-function resolveTime(hhmm: string, anchor: Date): Date | null {
-  if (!hhmm) return null;
-  const [h, m] = hhmm.split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return null;
-  const d = new Date(anchor);
-  d.setHours(h, m, 0, 0);
-  return d;
+/* A task is due `offsetMin` minutes before plate-up. */
+const dueAt = (eta: Date | null, offsetMin: number) =>
+  eta ? new Date(eta.getTime() - offsetMin * 60000) : null;
+
+/* Value for <input type="datetime-local">, in the viewer's local time. */
+function toLocalInput(ms: number): string {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
 }
+
+const clock = (d: Date) =>
+  d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+const beforeLabel = (min: number) =>
+  min === 0 ? "At serving" : `${formatDuration(min)} before`;
 
 /* Human countdown: 5025000 -> "1h 23m 45s". Always shows seconds so it reads
    as live. */
@@ -109,6 +115,8 @@ export default function MealClient({ id }: { id: string }) {
   const [celebrate, setCelebrate] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [startOpen, setStartOpen] = useState(false);
+  const [plateUp, setPlateUp] = useState("");
   const exportRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const prevAllDone = useRef(false);
@@ -183,23 +191,49 @@ export default function MealClient({ id }: { id: string }) {
     });
   }
 
-  async function runAction(action: "start" | "stop" | "reset") {
+  async function runAction(action: "start" | "stop" | "reset", etaAt?: string) {
     if (!meal) return;
     // optimistic
     if (action === "reset") {
       setMeal({
         ...meal,
         running: false,
+        etaAt: null,
         timeline: meal.timeline.map((t) => ({ ...t, done: false })),
       });
     } else {
-      setMeal({ ...meal, running: action === "start" });
+      setMeal({
+        ...meal,
+        running: action === "start",
+        etaAt: etaAt ?? meal.etaAt,
+      });
     }
-    await fetch("/api/meals/state", {
+    const res = await fetch("/api/meals/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mealId: id, action, origin: clientId() }),
+      body: JSON.stringify({ mealId: id, action, etaAt, origin: clientId() }),
     });
+    if (!res.ok) {
+      notify("Could not update the meal", "error");
+      refresh();
+    }
+  }
+
+  function openStart() {
+    if (!meal) return;
+    const maxOffset = Math.max(0, ...meal.timeline.map((t) => t.offsetMin));
+    const earliest = Date.now() + maxOffset * 60000;
+    const prev = meal.etaAt ? new Date(meal.etaAt).getTime() : 0;
+    // keep the previous plate-up time if still reachable, else the soonest
+    // possible one, rounded up to the next 5 minutes
+    const next = prev >= earliest ? prev : Math.ceil(earliest / 300000) * 300000;
+    setPlateUp(toLocalInput(next));
+    setStartOpen(true);
+  }
+
+  function confirmStart() {
+    setStartOpen(false);
+    runAction("start", new Date(plateUp).toISOString());
   }
 
   async function exportFile() {
@@ -220,24 +254,29 @@ export default function MealClient({ id }: { id: string }) {
   if (!meal) return <MealSkeleton />;
 
   const eta = meal.etaAt ? new Date(meal.etaAt) : null;
-  const anchor = eta ?? new Date();
 
-  const sorted = [...meal.timeline].sort((a, b) => a.order - b.order);
+  // earliest task (most minutes before plate-up) first
+  const sorted = [...meal.timeline].sort(
+    (a, b) => b.offsetMin - a.offsetMin || a.order - b.order
+  );
+  const maxOffset = Math.max(0, ...sorted.map((t) => t.offsetMin));
+  const plateUpMs = new Date(plateUp).getTime();
+  const earliestStart = plateUpMs - maxOffset * 60000;
+  const plateUpOk =
+    !Number.isNaN(plateUpMs) && plateUpMs >= now + maxOffset * 60000 - 60000;
+  const timeLabel = (t: TimelineItem) => {
+    const at = dueAt(eta, t.offsetMin);
+    return at ? clock(at) : beforeLabel(t.offsetMin);
+  };
   const allDone = sorted.length > 0 && sorted.every((t) => t.done);
   const anyDone = sorted.some((t) => t.done);
   const hasRecipes = meal.recipes.length > 0;
 
-  // next action = earliest not-done task (by resolved time, then order)
-  const pending = sorted.filter((t) => !t.done);
-  const nextAction =
-    pending
-      .map((t) => ({ t, at: resolveTime(t.time, anchor) }))
-      .sort((a, b) => {
-        if (a.at && b.at) return a.at.getTime() - b.at.getTime();
-        if (a.at) return -1;
-        if (b.at) return 1;
-        return 0;
-      })[0] ?? null;
+  // next action = first task not yet done (list is already in due order)
+  const firstPending = sorted.find((t) => !t.done);
+  const nextAction = firstPending
+    ? { t: firstPending, at: dueAt(eta, firstPending.offsetMin) }
+    : null;
 
   // timers only count down while started and not yet finished
   const running = meal.running;
@@ -342,7 +381,7 @@ export default function MealClient({ id }: { id: string }) {
                 <div className={`pb-5 min-w-0 flex-1 ${last ? "pb-0" : ""}`}>
                   <div className="flex items-center gap-2">
                     <span className="text-sm tabular-nums text-muted shrink-0">
-                      {item.time || "—"}
+                      {timeLabel(item)}
                     </span>
                     {isNext && (
                       <span className="text-[10px] uppercase tracking-wide text-accent border border-accent/40 rounded-full px-1.5">
@@ -386,6 +425,30 @@ export default function MealClient({ id }: { id: string }) {
   return (
     <div className={meal.imagePath ? "-m-5 relative" : "flex flex-col gap-6"}>
       {celebrate && <Celebration onDone={() => setCelebrate(false)} />}
+
+      <ConfirmDialog
+        open={startOpen}
+        title="When do you plate up?"
+        confirmLabel="Start"
+        confirmDisabled={!plateUpOk}
+        onConfirm={confirmStart}
+        onCancel={() => setStartOpen(false)}
+      >
+        <input
+          type="datetime-local"
+          aria-label="Plate-up time"
+          className="border rounded-lg p-2 w-full"
+          value={plateUp}
+          onChange={(e) => setPlateUp(e.target.value)}
+        />
+        <p className={`text-sm ${plateUpOk ? "text-muted" : "text-danger"}`}>
+          {Number.isNaN(plateUpMs)
+            ? "Pick a date and time."
+            : plateUpOk
+              ? `First task starts at ${fmtClock(earliestStart)}.`
+              : `Too soon: the first task needs ${formatDuration(maxOffset)} before serving.`}
+        </p>
+      </ConfirmDialog>
 
       {/* Action bar — scrolls away with the page */}
       <div className={`topbar flex items-center justify-between ${meal.imagePath ? "absolute inset-x-5 top-5" : ""}`}>
@@ -495,7 +558,7 @@ export default function MealClient({ id }: { id: string }) {
               </span>
               <span className="text-sm tabular-nums text-accent">
                 {!running || nextMs == null
-                  ? nextAction.t.time || "anytime"
+                  ? timeLabel(nextAction.t)
                   : nextMs >= 0
                     ? `in ${countdown(nextMs)}`
                     : `due ${countdown(nextMs)} ago`}
@@ -508,7 +571,7 @@ export default function MealClient({ id }: { id: string }) {
       </div>
 
       {/* Start / stop / reset */}
-      {(eta || sorted.length > 0) && (
+      {sorted.length > 0 && (
         <div className="flex items-center gap-2">
           {running && !allDone ? (
             <button
@@ -521,7 +584,7 @@ export default function MealClient({ id }: { id: string }) {
           ) : (
             <button
               type="button"
-              onClick={() => runAction("start")}
+              onClick={openStart}
               disabled={allDone}
               className="btn-primary disabled:opacity-50"
             >

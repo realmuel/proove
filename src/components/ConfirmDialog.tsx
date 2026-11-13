@@ -9,6 +9,8 @@ export default function ConfirmDialog({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   destructive = false,
+  confirmDisabled = false,
+  children,
   onConfirm,
   onCancel,
 }: {
@@ -18,6 +20,8 @@ export default function ConfirmDialog({
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  confirmDisabled?: boolean;
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -50,13 +54,15 @@ export default function ConfirmDialog({
       <div className="flex flex-col gap-3">
         <h2 id={titleId} className="text-xl">{title}</h2>
         {message && <p className="text-muted text-sm">{message}</p>}
+        {children}
         <div className="flex justify-end gap-2 mt-2">
           <button autoFocus onClick={onCancel} className="btn-ghost">
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={destructive ? "btn-danger" : "btn-primary"}
+            disabled={confirmDisabled}
+            className={`${destructive ? "btn-danger" : "btn-primary"} disabled:opacity-50`}
           >
             {confirmLabel}
           </button>

@@ -17,7 +17,7 @@ import {
 } from "@/components/icons";
 
 type MealTimelineItem = {
-  time: string; // "HH:MM"
+  offsetMin: number | null; // minutes before plate-up
   content: string;
   recipeId: string | null;
 };
@@ -30,7 +30,6 @@ export type MealFormData = {
   imagePath: string;
   imagePos: string;
   prepTime: number | null;
-  etaAt: string; // datetime-local value, "" when unset
   version?: number;
   recipes: { recipeId: string }[];
   timeline: MealTimelineItem[];
@@ -44,7 +43,6 @@ const EMPTY: MealFormData = {
   imagePath: "",
   imagePos: DEFAULT_IMAGE_POS,
   prepTime: null,
-  etaAt: "",
   recipes: [],
   timeline: [],
 };
@@ -116,15 +114,14 @@ export default function MealForm({
     }
     setSaving(true);
 
-    // sort timeline by clock time so it always reads chronologically
+    // earliest task (most minutes before plate-up) first
     const timeline = [...data.timeline]
-      .filter((t) => t.content.trim() || t.time)
-      .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+      .filter((t) => t.content.trim() || t.offsetMin != null)
+      .sort((a, b) => (b.offsetMin ?? 0) - (a.offsetMin ?? 0));
 
     const payload = {
       ...data,
       timeline,
-      etaAt: data.etaAt ? new Date(data.etaAt).toISOString() : null,
       baseVersion: data.version,
       origin: clientId(),
     };
@@ -226,16 +223,6 @@ export default function MealForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-1">
-        <span className={labelCls}>Ready by (ETA)</span>
-        <input
-          type="datetime-local"
-          className={inputCls}
-          value={data.etaAt}
-          onChange={(e) => set("etaAt", e.target.value)}
-        />
-      </label>
-
       {/* ---------------- Image ---------------- */}
       <ImageField
         imagePath={data.imagePath}
@@ -296,7 +283,7 @@ export default function MealForm({
       <div className="flex flex-col gap-2">
         <h2 className="text-lg">Timeline</h2>
         <p className="text-sm text-muted -mt-1">
-          Tasks to do during prep. Link one to a recipe to jump to it.
+          Tasks to do during prep, as minutes before serving (0 = at serving). The plate-up time is chosen when you start the meal. Link a task to a recipe to jump to it.
         </p>
         {data.timeline.map((item, i) => (
           <div
@@ -305,10 +292,22 @@ export default function MealForm({
           >
             <div className="flex gap-2 items-start">
               <input
-                type="time"
+                type="number"
+                min={0}
+                step={1}
+                inputMode="numeric"
+                aria-label="Minutes before serving"
+                placeholder="min before"
                 className="border rounded-lg p-2 w-28 shrink-0"
-                value={item.time}
-                onChange={(e) => updateItem(i, { time: e.target.value })}
+                value={item.offsetMin ?? ""}
+                onChange={(e) =>
+                  updateItem(i, {
+                    offsetMin:
+                      e.target.value === ""
+                        ? null
+                        : Math.max(0, Math.floor(Number(e.target.value))),
+                  })
+                }
               />
               <input
                 className="border rounded-lg p-2 flex-1 min-w-0"
@@ -370,7 +369,7 @@ export default function MealForm({
           onClick={() =>
             set("timeline", [
               ...data.timeline,
-              { time: "", content: "", recipeId: null },
+              { offsetMin: null, content: "", recipeId: null },
             ])
           }
         >

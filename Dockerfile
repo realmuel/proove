@@ -1,24 +1,36 @@
 # syntax=docker/dockerfile:1
 
-# ---------- Builder: install dependencies and build the app ----------
-FROM node:22-bookworm-slim AS builder
+# ---------- Builder: compile the app on the *build* machine's native arch ----------
+# The Next.js output is plain JS, so it's identical for every target platform.
+# Pinning this stage to $BUILDPLATFORM keeps the slow `next build` off QEMU.
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS builder
 WORKDIR /app
 
-# Toolchain so node-gyp can build the better-sqlite3 native addon if no
-# matching prebuilt binary is available for this platform.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install dependencies first so this layer is cached unless the lockfile changes.
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build the production bundle.
 COPY . .
 RUN npm run build
+
+# ---------- Deps: node_modules for the *target* arch ----------
+# Native modules (better-sqlite3, sharp) must match the image's platform. This
+# layer only depends on the lockfile, so it's cached and rarely re-runs.
+FROM node:22-bookworm-slim AS deps
+WORKDIR /app
+
+# Toolchain so node-gyp can build better-sqlite3 if no prebuilt binary matches.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # ---------- Runner: slim image that serves the build ----------
 FROM node:22-bookworm-slim AS runner
@@ -33,9 +45,9 @@ ENV HOSTNAME=0.0.0.0
 
 # Build output plus the directories the server reads at runtime: PDF fonts,
 # the Drizzle migrations used to seed a fresh database, and uploaded images.
-# node_modules is copied from the builder so the Linux-compiled native modules
+# node_modules comes from the target-arch deps stage so the native modules
 # (better-sqlite3, sharp) come along.
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/drizzle ./drizzle

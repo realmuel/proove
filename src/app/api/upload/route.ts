@@ -4,17 +4,31 @@ import { processUploadImage } from "@/lib/processImage";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  const formData = await req.formData();
-  const file = formData.get("file") as File;
+const MAX_UPLOAD = 15 * 1024 * 1024;
 
-  if (!file) {
-    return Response.json({ error: "No file" }, { status: 400 });
+export async function POST(req: Request) {
+  let file: FormDataEntryValue | null;
+  try {
+    file = (await req.formData()).get("file");
+  } catch {
+    return Response.json({ error: "Bad form data" }, { status: 400 });
   }
 
-  const input = Buffer.from(await file.arrayBuffer());
-  // resize/normalise so stored images are web-sized and load reliably
-  const { buffer, ext } = await processUploadImage(input, file.name);
+  if (!(file instanceof File)) {
+    return Response.json({ error: "No file" }, { status: 400 });
+  }
+  if (file.size > MAX_UPLOAD) {
+    return Response.json({ error: "File too large" }, { status: 413 });
+  }
+
+  // resize/normalise so stored images are web-sized; rejects non-images
+  let out: Awaited<ReturnType<typeof processUploadImage>>;
+  try {
+    out = await processUploadImage(Buffer.from(await file.arrayBuffer()));
+  } catch {
+    return Response.json({ error: "Not a valid image" }, { status: 400 });
+  }
+  const { buffer, ext } = out;
 
   const uploadDir = path.join(process.cwd(), "public/uploads");
   await mkdir(uploadDir, { recursive: true });

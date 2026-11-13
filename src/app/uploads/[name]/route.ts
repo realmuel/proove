@@ -16,7 +16,7 @@ const MIME: Record<string, string> = {
   ".avif": "image/avif",
 };
 
-const UPLOAD_DIR = path.join(process.cwd(), "public/uploads");
+const UPLOAD_DIR = path.join(process.cwd(), "public/uploads"); // matches lib/uploads
 
 /* Serve uploaded images from disk.
 
@@ -56,6 +56,7 @@ export async function GET(
       "Content-Length": String(size),
       // Filenames are unique per upload, so the bytes never change.
       "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

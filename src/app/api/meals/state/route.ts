@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { meals, mealTimeline } from "@/db/schema";
 import { publish } from "@/lib/events";
+import { readJson, badJson } from "@/lib/uploads";
 
 /* Start / stop / reset the meal's prep timers. Kept separate from the meal PUT
    so these run-state changes never collide with an edit, and so every client
@@ -11,7 +12,8 @@ import { publish } from "@/lib/events";
 
    POST { mealId, action: "start" | "stop" | "reset", origin } */
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
   const { mealId, action, origin } = body as {
     mealId?: string;
     action?: "start" | "stop" | "reset";

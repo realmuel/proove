@@ -3,14 +3,21 @@ export const dynamic = "force-dynamic";
 
 import { subscribe, type RecordEvent } from "@/lib/events";
 
+const MAX_STREAMS = 200;
+let open = 0;
+
 /* SSE stream of changes for a single record.
    GET /api/events?channel=recipe:<id>  (or meal:<id>) */
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const channel = searchParams.get("channel");
-  if (!channel) {
-    return Response.json({ error: "Missing channel" }, { status: 400 });
+  if (!channel || !/^(home|(recipe|meal):[\w-]{1,64})$/.test(channel)) {
+    return Response.json({ error: "Bad channel" }, { status: 400 });
   }
+  if (open >= MAX_STREAMS) {
+    return Response.json({ error: "Too many streams" }, { status: 503 });
+  }
+  open++;
 
   const encoder = new TextEncoder();
 
@@ -39,6 +46,9 @@ export async function GET(req: Request) {
       }, 25000);
 
       const close = () => {
+        if (closed) return;
+        closed = true;
+        open--;
         clearInterval(ping);
         unsubscribe();
         try {
@@ -48,6 +58,7 @@ export async function GET(req: Request) {
         }
       };
 
+      let closed = false;
       req.signal.addEventListener("abort", close);
     },
   });

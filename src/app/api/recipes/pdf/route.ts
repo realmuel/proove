@@ -1,10 +1,10 @@
 export const runtime = "nodejs";
 
 import { existsSync } from "fs";
-import path from "path";
 import sharp from "sharp";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { uploadFile } from "@/lib/uploads";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { renderRecipePdf } from "@/lib/recipePdf";
 
@@ -79,8 +79,8 @@ export async function GET(req: Request) {
 
   let imageAbsPath: string | null = null;
   if (recipe.imagePath) {
-    const p = path.join(process.cwd(), "public", recipe.imagePath);
-    if (existsSync(p)) imageAbsPath = await prepareHeroImage(p, recipe.imagePos);
+    const p = uploadFile(recipe.imagePath);
+    if (p && existsSync(p)) imageAbsPath = await prepareHeroImage(p, recipe.imagePos);
   }
 
   const buffer = await renderRecipePdf({

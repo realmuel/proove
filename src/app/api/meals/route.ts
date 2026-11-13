@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { meals, mealRecipes, mealTimeline, recipes } from "@/db/schema";
 import { publish } from "@/lib/events";
 import { randomEmoji } from "@/lib/emoji";
+import { safeImagePath, readJson, badJson } from "@/lib/uploads";
 
 /* Load a meal with its attached recipes (decorated with title/image for
    display) and its timeline, both ordered. Returns null if the meal is
@@ -106,7 +107,8 @@ function writeChildren(
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
   const id = crypto.randomUUID();
   const now = new Date();
 
@@ -117,7 +119,7 @@ export async function POST(req: Request) {
         name: body.name,
         description: body.description ?? null,
         emoji: body.emoji || randomEmoji(),
-        imagePath: body.imagePath ?? null,
+        imagePath: safeImagePath(body.imagePath),
         imagePos: body.imagePos ?? null,
         prepTime: body.prepTime ?? null,
         etaAt: body.etaAt ? new Date(body.etaAt) : null,
@@ -140,7 +142,8 @@ export async function PUT(req: Request) {
   const id = searchParams.get("id");
   if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
 
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
   const now = new Date();
 
   const current = db.select().from(meals).where(eq(meals.id, id)).get();
@@ -166,7 +169,7 @@ export async function PUT(req: Request) {
         description: body.description ?? null,
         emoji: body.emoji || current.emoji || randomEmoji(),
         createdBy: body.createdBy ?? current.createdBy,
-        imagePath: body.imagePath ?? null,
+        imagePath: safeImagePath(body.imagePath),
         imagePos: body.imagePos ?? null,
         prepTime: body.prepTime ?? null,
         etaAt: body.etaAt ? new Date(body.etaAt) : null,

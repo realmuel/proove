@@ -3,6 +3,7 @@ import path from "path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
+import { uploadFile, UPLOAD_DIR } from "@/lib/uploads";
 import { randomEmoji } from "@/lib/emoji";
 import { processUploadImage } from "@/lib/processImage";
 
@@ -52,8 +53,9 @@ export async function buildRecipePayload(
   let image: { filename: string; dataUrl: string } | null = null;
   if (recipe.imagePath) {
     try {
-      const filename = path.basename(recipe.imagePath);
-      const filepath = path.join(process.cwd(), "public", recipe.imagePath);
+      const filepath = uploadFile(recipe.imagePath);
+      if (!filepath) throw new Error("bad image path");
+      const filename = path.basename(filepath);
       const bytes = await readFile(filepath);
       const mime = MIME[path.extname(filename).toLowerCase()] ?? "image/jpeg";
       image = {
@@ -99,12 +101,16 @@ async function saveEmbeddedImage(image: {
   if (!image?.dataUrl) return null;
   const match = String(image.dataUrl).match(/^data:(.+?);base64,(.*)$/);
   if (!match) return null;
-  // resize/normalise embedded images on import, same as fresh uploads
-  const { buffer, ext } = await processUploadImage(
-    Buffer.from(match[2], "base64"),
-    image.filename || ""
-  );
-  const uploadDir = path.join(process.cwd(), "public/uploads");
+  // resize/normalise embedded images on import, same as fresh uploads;
+  // anything that isn't a decodable image is dropped
+  let processed: Awaited<ReturnType<typeof processUploadImage>>;
+  try {
+    processed = await processUploadImage(Buffer.from(match[2], "base64"));
+  } catch {
+    return null;
+  }
+  const { buffer, ext } = processed;
+  const uploadDir = UPLOAD_DIR;
   await mkdir(uploadDir, { recursive: true });
   const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`;
   await writeFile(path.join(uploadDir, filename), buffer);

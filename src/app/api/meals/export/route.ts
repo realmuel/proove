@@ -4,6 +4,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { uploadFile } from "@/lib/uploads";
 import { meals, mealRecipes, mealTimeline } from "@/db/schema";
 import { buildRecipePayload } from "@/lib/recipeIO";
 
@@ -82,8 +83,9 @@ export async function GET(req: Request) {
   let image: { filename: string; dataUrl: string } | null = null;
   if (meal.imagePath) {
     try {
-      const filename = path.basename(meal.imagePath);
-      const filepath = path.join(process.cwd(), "public", meal.imagePath);
+      const filepath = uploadFile(meal.imagePath);
+      if (!filepath) throw new Error("bad image path");
+      const filename = path.basename(filepath);
       const bytes = await readFile(filepath);
       const mime = MIME[path.extname(filename).toLowerCase()] ?? "image/jpeg";
       image = {

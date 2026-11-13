@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import path from "path";
 
 /* Normalise an uploaded image before it's stored:
    - honour EXIF orientation (so phone photos aren't sideways),
@@ -7,17 +6,16 @@ import path from "path";
    - re-encode small: JPEG for opaque images, PNG when there's transparency.
 
    This keeps served files to a couple hundred KB instead of multiple MB, which
-   is what makes them load reliably. Falls back to the original bytes if sharp
-   can't read the input. */
+   is what makes them load reliably. Throws if sharp can't decode the input, so
+   non-image files are never stored. */
 
 const MAX_DIM = 1600; // px on the longest side
 
 export async function processUploadImage(
-  input: Buffer,
-  originalName = ""
+  input: Buffer
 ): Promise<{ buffer: Buffer; ext: string }> {
-  try {
-    const pipeline = sharp(input, { failOn: "none" }).rotate();
+  {
+    const pipeline = sharp(input, { failOn: "error" }).rotate();
     const meta = await pipeline.metadata();
 
     const resized = pipeline.resize({
@@ -37,11 +35,6 @@ export async function processUploadImage(
     return {
       buffer: await resized.jpeg({ quality: 82, mozjpeg: true }).toBuffer(),
       ext: ".jpg",
-    };
-  } catch {
-    return {
-      buffer: input,
-      ext: path.extname(originalName).toLowerCase() || ".bin",
     };
   }
 }

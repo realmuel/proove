@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { recipes, ingredients, steps, tools } from "@/db/schema";
 import { publish } from "@/lib/events";
 import { randomEmoji } from "@/lib/emoji";
+import { safeImagePath, readJson, badJson } from "@/lib/uploads";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -29,7 +30,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
 
   const recipeId = crypto.randomUUID();
   //const now = Date.now();
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
       coolTime: body.coolTime ?? null,
       proveTime: body.proveTime ?? null,
 
-      imagePath: body.imagePath ?? null,
+      imagePath: safeImagePath(body.imagePath),
       imagePos: body.imagePos ?? null,
 
       createdBy: body.createdBy ?? "Unknown",
@@ -102,7 +104,8 @@ export async function PUT(req: Request) {
     return Response.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
   const now = new Date();
 
   const current = db.select().from(recipes).where(eq(recipes.id, id)).get();
@@ -139,7 +142,7 @@ export async function PUT(req: Request) {
         chillTime: body.chillTime ?? null,
         coolTime: body.coolTime ?? null,
         proveTime: body.proveTime ?? null,
-        imagePath: body.imagePath ?? null,
+        imagePath: safeImagePath(body.imagePath),
         imagePos: body.imagePos ?? null,
         updatedAt: now,
         version: nextVersion,

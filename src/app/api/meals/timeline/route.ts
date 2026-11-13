@@ -4,11 +4,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { mealTimeline } from "@/db/schema";
 import { publish } from "@/lib/events";
+import { readJson, badJson } from "@/lib/uploads";
 
 /* Check or uncheck a single timeline action. Kept separate from the meal PUT
    so ticking things off mid-cook never collides with an edit in progress. */
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body = await readJson(req);
+  if (!body) return badJson();
   const { id, done, origin } = body as {
     id?: string;
     done?: boolean;

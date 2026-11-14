@@ -1,33 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-/* Guards for an app with no login that lives on a home network:
-   - Host must look like a LAN address (IP, localhost, bare hostname, .local /
-     .lan / .home.arpa), or be listed in ALLOWED_HOSTS (comma-separated). This
-     blocks DNS-rebinding, where a public domain is pointed at your LAN IP.
-   - Browser-sent unsafe requests must come from the same origin, which stops
-     other websites from posting to the app (CSRF).
-   - Request bodies are capped (imports embed images, so this is generous). */
+/* Guards for an app with no login:
+   - Browser-sent unsafe requests must come from the same origin (CSRF).
+   - Request bodies are capped (imports embed images, so this is generous).
+   ponytail: no Host allow-list (it 403'd Home Assistant / reverse-proxy hostnames);
+   re-add a DNS-rebinding check if the app is ever exposed beyond a trusted network. */
 
 const MAX_BODY = 30 * 1024 * 1024;
-const extra = (process.env.ALLOWED_HOSTS ?? "")
-  .split(",")
-  .map((h) => h.trim().toLowerCase())
-  .filter(Boolean);
-
-function hostAllowed(hostHeader: string): boolean {
-  const host = hostHeader.toLowerCase().replace(/:\d+$/, "");
-  if (extra.includes(host)) return true;
-  return (
-    /^\[[0-9a-f:.]+\]$/.test(host) || // IPv6 literal
-    /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || // IPv4 literal
-    !host.includes(".") || // localhost, bare LAN hostnames
-    /\.(local|lan|home\.arpa)$/.test(host)
-  );
-}
 
 export function proxy(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
-  if (!hostAllowed(host)) return new NextResponse("Forbidden host", { status: 403 });
 
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     const origin = req.headers.get("origin");
